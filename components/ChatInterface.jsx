@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import apiService from '../lib/api';
 import { signInWithGoogle, signOutUser, onAuthChange, createSession, addMessageToSession, getUserSessions, getSession } from '../lib/firebase';
 import ClaudeChatInput from './ui/claude-chat-input';
+import { Menu, PanelLeftClose, Plus, MoreHorizontal, Pencil, Trash2, ArrowUp, LogOut, User } from 'lucide-react';
 
 // Global styles for dark mode
 const GlobalStyle = createGlobalStyle`
@@ -217,9 +218,21 @@ const RecentsLabel = styled.div`
   letter-spacing: 0.05em;
 `;
 
+const SessionItemContainer = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.125rem;
+  
+  &:hover .menu-trigger {
+    opacity: 1;
+  }
+`;
+
 const SessionItem = styled.button`
-  width: 100%;
+  flex: 1;
   padding: 0.5rem 0.75rem;
+  padding-right: 1.75rem;
   background: ${props => props.$isActive ? props.theme.border : 'transparent'};
   border: none;
   border-radius: 6px;
@@ -227,7 +240,6 @@ const SessionItem = styled.button`
   font-size: 0.875rem;
   text-align: left;
   cursor: pointer;
-  margin-bottom: 0.125rem;
   transition: all 0.2s ease;
   white-space: nowrap;
   overflow: hidden;
@@ -236,6 +248,160 @@ const SessionItem = styled.button`
   &:hover {
     background: ${props => props.theme.border};
   }
+`;
+
+const MenuTrigger = styled.button`
+  opacity: 0;
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: ${props => props.theme.secondaryText};
+  cursor: pointer;
+  padding: 0.25rem 0.35rem;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  line-height: 1;
+  letter-spacing: 1px;
+  
+  &:hover {
+    background: ${props => props.theme.border};
+    color: ${props => props.theme.text};
+  }
+`;
+
+const DropdownMenu = styled.div`
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 1000;
+  min-width: 150px;
+  background: ${props => props.theme.sidebar};
+  border: 1px solid ${props => props.theme.border};
+  border-radius: 8px;
+  padding: 0.25rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  animation: menuFadeIn 0.12s ease-out;
+  
+  @keyframes menuFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`;
+
+const DropdownItem = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: ${props => props.$danger ? '#ef4444' : props.theme.text};
+  font-size: 0.813rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  
+  &:hover {
+    background: ${props => props.$danger ? 'rgba(239, 68, 68, 0.1)' : props.theme.border};
+  }
+  
+  .menu-icon {
+    font-size: 0.875rem;
+    width: 1.25rem;
+    text-align: center;
+  }
+`;
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: modalOverlayIn 0.15s ease-out;
+  
+  @keyframes modalOverlayIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+`;
+
+const ModalCard = styled.div`
+  background: #2f2f2f;
+  border-radius: 16px;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+  animation: modalCardIn 0.2s ease-out;
+  
+  @keyframes modalCardIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  h3 {
+    color: #ececec;
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+  
+  p {
+    color: #9b9b9b;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+  }
+`;
+
+const ModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+`;
+
+const ModalBtn = styled.button`
+  padding: 0.625rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+  
+  ${props => props.$variant === 'cancel' ? `
+    background: #3f3f3f;
+    color: #ececec;
+    &:hover { background: #4f4f4f; }
+  ` : `
+    background: #ef4444;
+    color: #ffffff;
+    &:hover { background: #dc2626; }
+  `}
 `;
 
 const SidebarFooter = styled.div`
@@ -738,22 +904,23 @@ const SendButton = styled.button`
   background: ${props => props.theme.buttonBackground};
   color: ${props => props.theme.background};
   border: none;
-  padding: 0.875rem 1.125rem;
-  border-radius: 1.5rem;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 50%;
   cursor: pointer;
-  font-weight: 500;
-  font-size: 0.9375rem;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  justify-content: center;
   
   &:hover:not(:disabled) {
     background: ${props => props.theme.buttonHover};
+    transform: scale(1.05);
   }
   
   &:disabled {
-    opacity: 0.4;
+    opacity: 0.3;
     cursor: not-allowed;
   }
 `;
@@ -777,6 +944,8 @@ const ChatInterface = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [sessions, setSessions] = useState([]);
   const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [activeMenuId, setActiveMenuId] = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   // New chat view state
   const [showNewChatView, setShowNewChatView] = useState(true);
@@ -801,16 +970,16 @@ const ChatInterface = () => {
     // Welcome message
     setMessages([{
       id: 1,
-      content: `# Welcome to Your AI Career Counselor! 🎯
+      content: `# Welcome to Your AI Career Counselor
 
 I'm here to guide you through your career journey with personalized insights and actionable advice.
 
-  ** What I can help you with:**
-    - 🔍 ** Discover ** your strengths and interests
-      - 📊 ** Analyze ** your career potential
-        - 🎯 ** Recommend ** suitable career paths
-          - 📚 ** Create ** personalized learning roadmaps
-            - ✅ ** Plan ** actionable next steps
+**What I can help you with:**
+- **Discover** your strengths and interests
+- **Analyze** your career potential
+- **Recommend** suitable career paths
+- **Create** personalized learning roadmaps
+- **Plan** actionable next steps
 
 Let's start by understanding your current situation. What brings you here today?`,
       isUser: false,
@@ -924,39 +1093,59 @@ Let's start by understanding your current situation. What brings you here today?
     setIsLoading(true);
     setSuggestions([]);
 
+    // Create placeholder for bot message
+    const botMessageId = Date.now() + 1;
+    const botMessage = {
+      id: botMessageId,
+      content: '',
+      isUser: false,
+      timestamp: Date.now()
+    };
+    setMessages(prev => [...prev, botMessage]);
+
     try {
       // Save user message to Firestore
       if (user && currentSessionId) {
         await addMessageToSession(currentSessionId, { content: message, isUser: true });
       }
 
-      const response = await apiService.sendMessage(message, sessionId, currentStage);
+      let fullResponse = '';
 
-      const botMessage = {
-        id: Date.now() + 1,
-        content: response.response,
-        isUser: false,
-        timestamp: Date.now()
-      };
+      await apiService.streamMessage(
+        message,
+        sessionId,
+        currentStage,
+        (token) => {
+          fullResponse += token;
+          setMessages(prev => prev.map(msg =>
+            msg.id === botMessageId ? { ...msg, content: fullResponse } : msg
+          ));
+        },
+        async (data) => { // onComplete
+          const { session_id, stage, suggestions } = data;
+          setSessionId(session_id);
+          setCurrentStage(stage);
+          setSuggestions(suggestions || []);
 
-      setMessages(prev => [...prev, botMessage]);
-      setSessionId(response.session_id);
-      setCurrentStage(response.next_stage);
-      setSuggestions(response.suggestions || []);
-
-      // Save AI message to Firestore
-      if (user && currentSessionId) {
-        await addMessageToSession(currentSessionId, { content: response.response, isUser: false });
-      }
+          // Save AI message to Firestore
+          if (user && currentSessionId) {
+            await addMessageToSession(currentSessionId, { content: fullResponse, isUser: false });
+          }
+        },
+        (error) => { // onError
+          throw error; // Re-throw to be caught by catch block
+        }
+      );
 
     } catch (error) {
-      const errorMessage = {
-        id: Date.now() + 1,
-        content: `I apologize, but I encountered an error: ${error.message}. Please try again.`,
-        isUser: false,
-        timestamp: Date.now()
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      console.error('Chat Error:', error);
+      const errorMessage = `I apologize, but I encountered an error: ${error.message}. Please try again.`;
+
+      setMessages(prev => prev.map(msg =>
+        msg.id === botMessageId
+          ? { ...msg, content: msg.content + '\n\n' + errorMessage }
+          : msg
+      ));
     } finally {
       setIsLoading(false);
     }
@@ -990,13 +1179,13 @@ Let's start by understanding your current situation. What brings you here today?
   const getStageDisplay = (stage) => {
     const stageMap = {
       discovery: '🔍 Discovery Phase - Understanding your background',
-      analysis: '📊 Analysis Phase - Evaluating your strengths',
-      recommendations: '🎯 Recommendations Phase - Exploring career options',
+      analysis: 'Analysis Phase — Evaluating your strengths',
+      recommendations: 'Recommendations Phase — Exploring career options',
       learning_path: '📚 Learning Path Phase - Building your roadmap',
       action_plan: '✅ Action Plan Phase - Creating next steps',
       follow_up: '🤝 Follow-up Phase - Ongoing support'
     };
-    return stageMap[stage] || '💬 Career Counseling Session';
+    return stageMap[stage] || 'Career Counseling Session';
   };
 
   const handleNewChat = () => {
@@ -1074,6 +1263,57 @@ Let's start by understanding your current situation. What brings you here today?
     }
   };
 
+  const handleDeleteSession = (e, sessionId) => {
+    e.stopPropagation();
+    setActiveMenuId(null);
+    setDeleteConfirmId(sessionId);
+  };
+
+  const confirmDelete = async () => {
+    const sessionId = deleteConfirmId;
+    setDeleteConfirmId(null);
+    if (!sessionId) return;
+
+    try {
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      if (sessionId === currentSessionId) {
+        handleNewChat();
+      }
+      await apiService.deleteSession(sessionId);
+    } catch (error) {
+      console.error('Failed to delete session:', error);
+    }
+  };
+
+  const handleRenameSession = async (e, sessionId) => {
+    e.stopPropagation();
+    setActiveMenuId(null);
+    const session = sessions.find(s => s.id === sessionId);
+    const newTitle = prompt('Rename chat:', session?.title || 'Untitled Session');
+    if (!newTitle || newTitle.trim() === '') return;
+
+    try {
+      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, title: newTitle.trim() } : s));
+      await apiService.client.patch(`/api/session/${sessionId}`, { title: newTitle.trim() });
+    } catch (error) {
+      console.error('Failed to rename session:', error);
+    }
+  };
+
+  const toggleSessionMenu = (e, sessionId) => {
+    e.stopPropagation();
+    setActiveMenuId(prev => prev === sessionId ? null : sessionId);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setActiveMenuId(null);
+    if (activeMenuId) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [activeMenuId]);
+
   const toggleSidebar = () => {
     setSidebarExpanded(!sidebarExpanded);
   };
@@ -1092,14 +1332,14 @@ Let's start by understanding your current situation. What brings you here today?
           {/* Header with toggle */}
           <SidebarHeader $isExpanded={sidebarExpanded}>
             <SidebarToggleBtn onClick={toggleSidebar} title={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}>
-              {sidebarExpanded ? '◧' : '☰'}
+              {sidebarExpanded ? <PanelLeftClose size={18} /> : <Menu size={18} />}
             </SidebarToggleBtn>
           </SidebarHeader>
 
           {/* Navigation */}
           <SidebarNav>
             <NewChatBtn $isExpanded={sidebarExpanded} onClick={handleNewChat} title="New chat">
-              <span className="nav-icon">✚</span>
+              <span className="nav-icon"><Plus size={16} /></span>
               <span className="nav-label">New chat</span>
             </NewChatBtn>
 
@@ -1111,13 +1351,35 @@ Let's start by understanding your current situation. What brings you here today?
             <RecentsLabel>Recents</RecentsLabel>
             {sessions.length > 0 ? (
               sessions.map((session) => (
-                <SessionItem
-                  key={session.id}
-                  $isActive={session.id === currentSessionId}
-                  onClick={() => handleSessionClick(session)}
-                >
-                  {session.title || 'Untitled Session'}
-                </SessionItem>
+                <SessionItemContainer key={session.id}>
+                  <SessionItem
+                    $isActive={session.id === currentSessionId}
+                    onClick={() => handleSessionClick(session)}
+                    title={session.title || 'Untitled Session'}
+                  >
+                    {session.title || 'Untitled Session'}
+                  </SessionItem>
+                  <MenuTrigger
+                    className="menu-trigger"
+                    onClick={(e) => toggleSessionMenu(e, session.id)}
+                    title="More options"
+                    style={activeMenuId === session.id ? { opacity: 1 } : {}}
+                  >
+                    <MoreHorizontal size={15} />
+                  </MenuTrigger>
+                  {activeMenuId === session.id && (
+                    <DropdownMenu onClick={(e) => e.stopPropagation()}>
+                      <DropdownItem onClick={(e) => handleRenameSession(e, session.id)}>
+                        <span className="menu-icon"><Pencil size={14} /></span>
+                        Rename
+                      </DropdownItem>
+                      <DropdownItem $danger onClick={(e) => handleDeleteSession(e, session.id)}>
+                        <span className="menu-icon"><Trash2 size={14} /></span>
+                        Delete
+                      </DropdownItem>
+                    </DropdownMenu>
+                  )}
+                </SessionItemContainer>
               ))
             ) : (
               <div style={{
@@ -1139,7 +1401,7 @@ Let's start by understanding your current situation. What brings you here today?
                     {user.photoURL ? (
                       <img src={user.photoURL} alt={user.displayName || 'Profile'} />
                     ) : (
-                      <span>{user.displayName?.charAt(0) || '👤'}</span>
+                      <span>{user.displayName?.charAt(0) || <User size={16} />}</span>
                     )}
                   </div>
                   {sidebarExpanded && (
@@ -1181,7 +1443,7 @@ Let's start by understanding your current situation. What brings you here today?
                       onMouseOver={(e) => e.currentTarget.style.background = theme.border}
                       onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                     >
-                      🚪 Log out
+                      <LogOut size={15} /> Log out
                     </button>
                   </div>
                 )}
@@ -1194,7 +1456,7 @@ Let's start by understanding your current situation. What brings you here today?
               ) : (
                 <ProfileSection $isExpanded={false} onClick={handleSignIn} title="Sign in">
                   <div className="profile-avatar">
-                    <span>👤</span>
+                    <span><User size={16} /></span>
                   </div>
                 </ProfileSection>
               )
@@ -1256,7 +1518,7 @@ Let's start by understanding your current situation. What brings you here today?
 
               {suggestions.length > 0 && !isLoading && (
                 <SuggestionsContainer>
-                  <div className="suggestions-label">💡 Quick suggestions:</div>
+                  <div className="suggestions-label">Quick suggestions</div>
                   <div className="suggestions-grid">
                     {suggestions.map((suggestion, index) => (
                       <SuggestionChip
@@ -1285,8 +1547,7 @@ Let's start by understanding your current situation. What brings you here today?
                     onClick={() => handleSendMessage()}
                     disabled={isLoading || !inputValue.trim()}
                   >
-                    <span className="send-icon">📤</span>
-                    Send
+                    <ArrowUp size={16} />
                   </SendButton>
                 </div>
               </InputSection>
@@ -1294,6 +1555,24 @@ Let's start by understanding your current situation. What brings you here today?
           )}
         </MainContent>
       </AppContainer>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (
+        <ModalOverlay onClick={() => setDeleteConfirmId(null)}>
+          <ModalCard onClick={(e) => e.stopPropagation()}>
+            <h3>Delete chat</h3>
+            <p>Are you sure you want to delete this chat?</p>
+            <ModalActions>
+              <ModalBtn $variant="cancel" onClick={() => setDeleteConfirmId(null)}>
+                Cancel
+              </ModalBtn>
+              <ModalBtn $variant="delete" onClick={confirmDelete}>
+                Delete
+              </ModalBtn>
+            </ModalActions>
+          </ModalCard>
+        </ModalOverlay>
+      )}
     </ThemeProvider>
   );
 };

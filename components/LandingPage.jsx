@@ -84,7 +84,7 @@ const LandingPage = ({ onSignIn }) => {
                                     )}
                                 >
                                     <AnimatedShinyText className="inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium transition ease-out hover:text-neutral-600 hover:duration-300 hover:dark:text-neutral-400">
-                                        <span>✨ Careerra — From confusion to direction</span>
+                                        <span>Careerra — From confusion to direction</span>
                                     </AnimatedShinyText>
                                 </div>
                             </div>

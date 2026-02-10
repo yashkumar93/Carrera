@@ -234,8 +234,8 @@ export const ClaudeChatInput = ({ onSendMessage, userName = "there", isDark = fa
         >
             {/* Greeting Section */}
             <div className="w-full mb-8 text-center animate-fade-in">
-                <h1 className="text-3xl font-light text-text-200 tracking-tight flex items-center justify-center gap-2">
-                    <span className="text-accent">✺</span>
+                <h1 className="text-3xl font-light text-text-200 tracking-tight flex items-center justify-center gap-3">
+                    <Icons.Logo className="w-7 h-7" />
                     {greeting} chat?
                 </h1>
             </div>
