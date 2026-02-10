@@ -1178,12 +1178,12 @@ Let's start by understanding your current situation. What brings you here today?
 
   const getStageDisplay = (stage) => {
     const stageMap = {
-      discovery: '🔍 Discovery Phase - Understanding your background',
+      discovery: 'Discovery Phase — Understanding your background',
       analysis: 'Analysis Phase — Evaluating your strengths',
       recommendations: 'Recommendations Phase — Exploring career options',
-      learning_path: '📚 Learning Path Phase - Building your roadmap',
-      action_plan: '✅ Action Plan Phase - Creating next steps',
-      follow_up: '🤝 Follow-up Phase - Ongoing support'
+      learning_path: 'Learning Path Phase — Building your roadmap',
+      action_plan: 'Action Plan Phase — Creating next steps',
+      follow_up: 'Follow-up Phase — Ongoing support'
     };
     return stageMap[stage] || 'Career Counseling Session';
   };

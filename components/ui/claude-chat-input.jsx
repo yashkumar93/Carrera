@@ -232,12 +232,43 @@ export const ClaudeChatInput = ({ onSendMessage, userName = "there", isDark = fa
             onDragLeave={onDragLeave}
             onDrop={onDrop}
         >
-            {/* Greeting Section */}
-            <div className="w-full mb-8 text-center animate-fade-in">
-                <h1 className="text-3xl font-light text-text-200 tracking-tight flex items-center justify-center gap-3">
-                    <Icons.Logo className="w-7 h-7" />
-                    {greeting} chat?
-                </h1>
+            {/* Welcome Section */}
+            <div className="w-full mb-10 animate-fade-in">
+                <div className="text-center mb-8">
+                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-text-400 mb-3">
+                        Good {greeting.toLowerCase()}, {userName}
+                    </p>
+                    <h1 className="text-4xl font-bold text-text-100 tracking-tight leading-tight mb-2">
+                        From confusion to <span className="text-accent">direction</span>
+                    </h1>
+                    <p className="text-base text-text-400 font-normal max-w-md mx-auto leading-relaxed">
+                        Tell me where you are, and I'll help you figure out where to go.
+                    </p>
+                </div>
+
+                {/* Quick-start prompt cards */}
+                <div className="grid grid-cols-2 gap-3 max-w-xl mx-auto">
+                    {[
+                        { title: 'Career Switch', desc: 'Explore new paths that fit your skills', icon: '→' },
+                        { title: 'Skill Gap Analysis', desc: 'Find what to learn for your dream role', icon: '∿' },
+                        { title: 'Resume Review', desc: 'Get actionable feedback on your CV', icon: '◈' },
+                        { title: 'Industry Insights', desc: 'Trends and opportunities in your field', icon: '◎' },
+                    ].map((card) => (
+                        <button
+                            key={card.title}
+                            onClick={() => onSendMessage({ message: card.title + ': ' + card.desc, files: [], pastedContent: [] })}
+                            className="group text-left px-4 py-3.5 rounded-xl border border-bg-300 dark:border-transparent bg-bg-100 dark:bg-bg-200 hover:border-text-400 dark:hover:border-bg-300 transition-all duration-200 hover:shadow-md cursor-pointer"
+                        >
+                            <div className="flex items-start gap-3">
+                                <span className="text-accent text-lg font-light mt-0.5 opacity-60 group-hover:opacity-100 transition-opacity">{card.icon}</span>
+                                <div>
+                                    <p className="text-sm font-semibold text-text-200 mb-0.5">{card.title}</p>
+                                    <p className="text-xs text-text-400 leading-relaxed">{card.desc}</p>
+                                </div>
+                            </div>
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* Main Input Container */}
