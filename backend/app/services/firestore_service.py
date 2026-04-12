@@ -216,6 +216,44 @@ def update_user_profile(user_id: str, data: Dict[str, Any]) -> None:
     logger.info("Updated profile for user %s", user_id)
 
 
+def delete_user_profile(user_id: str) -> None:
+    """Delete a user's profile document (GDPR)."""
+    db = get_firestore_client()
+    db.collection("users").document(user_id).delete()
+    logger.info("Deleted profile for user %s", user_id)
+
+
+# ---------------------------------------------------------------------------
+# Message Feedback
+# ---------------------------------------------------------------------------
+
+def save_message_feedback(
+    session_id: str,
+    rating: str,
+    message_snapshot: Optional[str],
+    comment: Optional[str],
+) -> None:
+    """Append a feedback entry to the session's feedbacks array."""
+    db = get_firestore_client()
+    doc_ref = db.collection("sessions").document(session_id)
+    doc = doc_ref.get()
+
+    if not doc.exists:
+        logger.warning("Attempted to save feedback on non-existent session %s", session_id)
+        return
+
+    current_feedbacks = doc.to_dict().get("feedbacks", [])
+    current_feedbacks.append({
+        "rating": rating,
+        "message_snapshot": (message_snapshot or "")[:500],
+        "comment": comment or "",
+        "created_at": datetime.utcnow().isoformat(),
+    })
+
+    doc_ref.update({"feedbacks": current_feedbacks})
+    logger.info("Saved %s feedback on session %s", rating, session_id)
+
+
 # ---------------------------------------------------------------------------
 # Health check
 # ---------------------------------------------------------------------------

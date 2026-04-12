@@ -31,6 +31,20 @@ class ProfileUpdateRequest(BaseModel):
     experience_level: Optional[str] = None
     education: Optional[str] = None
     bio: Optional[str] = Field(None, max_length=500)
+    onboarding_complete: Optional[bool] = None
+
+
+class FeedbackRequest(BaseModel):
+    rating: str = Field(
+        ...,
+        description="User rating: 'thumbs_up' or 'thumbs_down'",
+    )
+    message_snapshot: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="First ~300 chars of the AI message being rated (for context)",
+    )
+    comment: Optional[str] = Field(None, max_length=500, description="Optional free-text feedback")
 
 
 # ---------------------------------------------------------------------------
@@ -93,6 +107,37 @@ async def delete_session(session_id: str, user: Dict = Depends(get_current_user)
 
     firestore_service.delete_session(session_id)
     return {"message": "Session deleted"}
+
+
+@router.post("/session/{session_id}/feedback")
+async def add_message_feedback(
+    session_id: str,
+    body: FeedbackRequest,
+    user: Dict = Depends(get_current_user),
+):
+    """Record thumbs-up / thumbs-down feedback on an AI response in this session."""
+    valid_ratings = {"thumbs_up", "thumbs_down"}
+    if body.rating not in valid_ratings:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid rating '{body.rating}'. Must be one of: {', '.join(sorted(valid_ratings))}",
+        )
+
+    session = firestore_service.get_session(session_id)
+
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if session.get("userId") != user["uid"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    firestore_service.save_message_feedback(
+        session_id,
+        body.rating,
+        body.message_snapshot,
+        body.comment,
+    )
+    return {"message": "Feedback recorded", "rating": body.rating}
 
 
 @router.get("/session/{session_id}/export")
@@ -162,6 +207,36 @@ async def update_profile(body: ProfileUpdateRequest, user: Dict = Depends(get_cu
     data = body.model_dump(exclude_none=True)
     firestore_service.update_user_profile(user["uid"], data)
     return {"message": "Profile updated", "profile": data}
+
+
+# ---------------------------------------------------------------------------
+# Account / Data deletion (GDPR)
+# ---------------------------------------------------------------------------
+
+@router.delete("/account")
+async def delete_account_data(user: Dict = Depends(get_current_user)):
+    """
+    Delete all data associated with the authenticated user (GDPR compliance).
+    Removes: all sessions, user profile, and any feedback stored in sessions.
+    The Firebase Auth record itself must be deleted from the client side.
+    """
+    user_id = user["uid"]
+
+    # Delete all sessions belonging to this user
+    sessions = firestore_service.get_user_sessions(user_id, limit=500, offset=0)
+    deleted_sessions = 0
+    for session in sessions:
+        firestore_service.delete_session(session["id"])
+        deleted_sessions += 1
+
+    # Delete user profile
+    firestore_service.delete_user_profile(user_id)
+
+    logger.info("GDPR deletion completed for user %s — %d sessions removed", user_id, deleted_sessions)
+    return {
+        "message": "All account data has been deleted",
+        "sessions_deleted": deleted_sessions,
+    }
 
 
 # ---------------------------------------------------------------------------

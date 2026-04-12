@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { signInWithGoogle, signInWithEmail, signUpWithEmail } from '../lib/firebase';
+import { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword } from '../lib/firebase';
 
 const AuthPage = ({ onAuthSuccess, onBack }) => {
     const [isLogin, setIsLogin] = useState(true);
@@ -10,6 +10,9 @@ const AuthPage = ({ onAuthSuccess, onBack }) => {
     const [name, setName] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showResetPassword, setShowResetPassword] = useState(false);
+    const [resetEmail, setResetEmail] = useState('');
+    const [resetSent, setResetSent] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -53,6 +56,100 @@ const AuthPage = ({ onAuthSuccess, onBack }) => {
             setLoading(false);
         }
     };
+
+    const handlePasswordReset = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+        try {
+            await resetPassword(resetEmail || email);
+            setResetSent(true);
+        } catch (err) {
+            const code = err.code;
+            if (code === 'auth/user-not-found') setError('No account found with this email');
+            else if (code === 'auth/invalid-email') setError('Invalid email address');
+            else setError(err.message || 'Failed to send reset email');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ── Password reset screen ──────────────────────────────────────────────
+    if (showResetPassword) {
+        return (
+            <div style={styles.page}>
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                <div style={styles.bgGlow1} />
+                <div style={styles.bgGlow2} />
+                <div style={styles.container}>
+                    <button onClick={() => { setShowResetPassword(false); setResetSent(false); setError(''); }} style={styles.backBtn}>
+                        ← Back to sign in
+                    </button>
+                    <div style={styles.logoSection}>
+                        <div style={styles.logoIcon}>C</div>
+                        <span style={styles.logoText}>Careerra</span>
+                    </div>
+                    <div style={styles.card}>
+                        <h1 style={styles.heading}>Reset your password</h1>
+                        <p style={styles.subheading}>
+                            {resetSent
+                                ? 'Check your inbox for a password reset link.'
+                                : "Enter your email and we'll send you a reset link."}
+                        </p>
+
+                        {resetSent ? (
+                            <div style={{
+                                padding: '0.875rem 1rem',
+                                background: '#f0fdf4',
+                                border: '1px solid #bbf7d0',
+                                borderRadius: '10px',
+                                color: '#16a34a',
+                                fontSize: '0.8125rem',
+                                fontWeight: 500,
+                                textAlign: 'center',
+                            }}>
+                                Reset email sent to <strong>{resetEmail || email}</strong>
+                            </div>
+                        ) : (
+                            <form onSubmit={handlePasswordReset} style={styles.form}>
+                                <div style={styles.inputGroup}>
+                                    <label style={styles.label}>Email</label>
+                                    <input
+                                        type="email"
+                                        value={resetEmail || email}
+                                        onChange={(e) => setResetEmail(e.target.value)}
+                                        placeholder="you@example.com"
+                                        style={styles.input}
+                                        required
+                                        onFocus={(e) => {
+                                            e.target.style.borderColor = '#3B82F6';
+                                            e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                                        }}
+                                        onBlur={(e) => {
+                                            e.target.style.borderColor = '#e2e8f0';
+                                            e.target.style.boxShadow = 'none';
+                                        }}
+                                    />
+                                </div>
+                                {error && <div style={styles.errorMsg}>{error}</div>}
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    style={{
+                                        ...styles.submitBtn,
+                                        opacity: loading ? 0.7 : 1,
+                                        cursor: loading ? 'not-allowed' : 'pointer',
+                                    }}
+                                >
+                                    {loading ? <span style={styles.spinner} /> : 'Send Reset Link'}
+                                </button>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div style={styles.page}>
@@ -181,6 +278,27 @@ const AuthPage = ({ onAuthSuccess, onBack }) => {
                                 }}
                             />
                         </div>
+
+                        {isLogin && (
+                            <div style={{ textAlign: 'right', marginTop: '-0.25rem' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => { setShowResetPassword(true); setResetEmail(email); setError(''); }}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: 'oklch(0.62 0.14 39.04)',
+                                        fontSize: '0.8125rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        padding: 0,
+                                        fontFamily: 'inherit',
+                                    }}
+                                >
+                                    Forgot password?
+                                </button>
+                            </div>
+                        )}
 
                         {error && <div style={styles.errorMsg}>{error}</div>}
 

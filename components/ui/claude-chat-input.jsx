@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Plus, ChevronDown, ArrowUp, X, FileText, Loader2, Check, Archive } from "lucide-react";
 
 /* --- ICONS --- */
-const Icons = {
+export const Icons = {
     Logo: (props) => (
         <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="presentation" {...props}>
             <defs>
@@ -101,7 +101,7 @@ const PastedContentCard = ({ content, onRemove }) => {
             </div>
 
             <div className="flex items-center justify-between w-full mt-2">
-                <div className="inline-flex items-center justify-center px-1.5 py-[2px] rounded border border-bg-300 bg-bg-100">
+                <div className="inline-flex items-center justify-center px-1.5 py-0.5 rounded border border-bg-300 bg-bg-100">
                     <span className="text-[9px] font-bold text-text-400 uppercase tracking-wider font-sans">PASTED</span>
                 </div>
             </div>
@@ -227,59 +227,28 @@ export const ClaudeChatInput = ({ onSendMessage, userName = "there", isDark = fa
 
     return (
         <div
-            className={`flex flex-col items-center justify-center min-h-[60vh] w-full max-w-3xl mx-auto px-4 ${isDark ? 'dark' : ''}`}
+            className={`relative flex flex-col items-center justify-center min-h-[82vh] w-full max-w-5xl mx-auto px-6 py-14 ${isDark ? 'dark' : ''}`}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
             onDrop={onDrop}
         >
             {/* Welcome Section */}
-            <div className="w-full mb-10 animate-fade-in">
-                <div className="text-center mb-8">
-                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-text-400 mb-3">
-                        Good {greeting.toLowerCase()}, {userName}
-                    </p>
-                    <h1 className="text-4xl font-bold text-text-100 tracking-tight leading-tight mb-2">
-                        From confusion to <span className="text-accent">direction</span>
-                    </h1>
-                    <p className="text-base text-text-400 font-normal max-w-md mx-auto leading-relaxed">
-                        Tell me where you are, and I'll help you figure out where to go.
-                    </p>
-                </div>
-
-                {/* Quick-start prompt cards */}
-                <div className="grid grid-cols-2 gap-3 max-w-xl mx-auto">
-                    {[
-                        { title: 'Career Switch', desc: 'Explore new paths that fit your skills', icon: '→' },
-                        { title: 'Skill Gap Analysis', desc: 'Find what to learn for your dream role', icon: '∿' },
-                        { title: 'Resume Review', desc: 'Get actionable feedback on your CV', icon: '◈' },
-                        { title: 'Industry Insights', desc: 'Trends and opportunities in your field', icon: '◎' },
-                    ].map((card) => (
-                        <button
-                            key={card.title}
-                            onClick={() => onSendMessage({ message: card.title + ': ' + card.desc, files: [], pastedContent: [] })}
-                            className="group text-left px-4 py-3.5 rounded-xl border border-bg-300 dark:border-transparent bg-bg-100 dark:bg-bg-200 hover:border-text-400 dark:hover:border-bg-300 transition-all duration-200 hover:shadow-md cursor-pointer"
-                        >
-                            <div className="flex items-start gap-3">
-                                <span className="text-accent text-lg font-light mt-0.5 opacity-60 group-hover:opacity-100 transition-opacity">{card.icon}</span>
-                                <div>
-                                    <p className="text-sm font-semibold text-text-200 mb-0.5">{card.title}</p>
-                                    <p className="text-xs text-text-400 leading-relaxed">{card.desc}</p>
-                                </div>
-                            </div>
-                        </button>
-                    ))}
-                </div>
+            <div className="relative z-10 w-full mb-10 text-center animate-fade-in">
+                <p className="text-sm font-medium uppercase tracking-[0.22em] text-text-500 mb-4">
+                    Good {greeting.toLowerCase()}, {userName}
+                </p>
+                <h1 className="text-[clamp(2.5rem,5vw,4.25rem)] font-semibold text-text-100 tracking-tight leading-[1.04] mb-5">
+                    From confusion to <span className="text-accent">direction</span>
+                </h1>
+                <p className="text-[clamp(1.2rem,2.5vw,2rem)] text-text-400 font-normal max-w-3xl mx-auto leading-relaxed">
+                    Tell me where you are, and I&apos;ll help you figure out where to go.
+                </p>
             </div>
 
             {/* Main Input Container */}
-            <div className="relative w-full max-w-2xl mx-auto">
-                <div className={`
-                    flex flex-col items-stretch transition-all duration-200 relative z-10 rounded-2xl cursor-text 
-                    border border-bg-300 dark:border-transparent 
-                    shadow-[0_0_15px_rgba(0,0,0,0.08)] hover:shadow-[0_0_20px_rgba(0,0,0,0.12)]
-                    focus-within:shadow-[0_0_25px_rgba(0,0,0,0.15)]
-                    bg-bg-100 dark:bg-bg-200 font-sans
-                `}>
+            <div className="relative z-10 w-full max-w-2xl mx-auto transition-all duration-300 font-sans">
+                <div className="flex flex-col mx-2 md:mx-0 items-stretch transition-all duration-200 relative z-10 rounded-2xl cursor-text border border-bg-300 dark:border-transparent shadow-[0_0_15px_rgba(0,0,0,0.08)] hover:shadow-[0_0_20px_rgba(0,0,0,0.12)] focus-within:shadow-[0_0_25px_rgba(0,0,0,0.15)] bg-white dark:bg-[#30302E] font-sans antialiased">
+
                     <div className="flex flex-col px-3 pt-3 pb-2 gap-2">
 
                         {/* Attached Files */}
@@ -302,9 +271,9 @@ export const ClaudeChatInput = ({ onSendMessage, userName = "there", isDark = fa
                             </div>
                         )}
 
-                        {/* Text Input */}
+                        {/* Input Area */}
                         <div className="relative mb-1">
-                            <div className="max-h-96 w-full overflow-y-auto custom-scrollbar font-sans break-words min-h-[2.5rem] pl-1">
+                            <div className="max-h-96 w-full overflow-y-auto custom-scrollbar font-sans break-words transition-opacity duration-200 min-h-[2.5rem] pl-1">
                                 <textarea
                                     ref={textareaRef}
                                     value={message}
@@ -312,7 +281,7 @@ export const ClaudeChatInput = ({ onSendMessage, userName = "there", isDark = fa
                                     onPaste={handlePaste}
                                     onKeyDown={handleKeyDown}
                                     placeholder="How can I help you today?"
-                                    className="w-full bg-transparent border-0 outline-none text-text-100 text-[16px] placeholder:text-text-400 resize-none overflow-hidden py-0 leading-relaxed block font-normal"
+                                    className="w-full bg-transparent border-0 outline-none text-text-100 text-[16px] placeholder:text-text-400 resize-none overflow-hidden py-0 leading-relaxed block font-normal antialiased"
                                     rows={1}
                                     autoFocus
                                     style={{ minHeight: '1.5em' }}
@@ -321,12 +290,13 @@ export const ClaudeChatInput = ({ onSendMessage, userName = "there", isDark = fa
                         </div>
 
                         {/* Action Bar */}
-                        <div className="flex gap-2 w-full items-center justify-between">
+                        <div className="flex gap-2 w-full items-center">
                             {/* Left Tools */}
-                            <div className="flex items-center gap-1">
+                            <div className="relative flex-1 flex items-center shrink min-w-0 gap-1">
+                                {/* Attach Button */}
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="inline-flex items-center justify-center h-8 w-8 rounded-lg active:scale-95 text-text-400 hover:text-text-200 hover:bg-bg-200 transition-colors"
+                                    className="inline-flex items-center justify-center relative shrink-0 transition-colors duration-200 h-8 w-8 rounded-lg active:scale-95 text-text-400 hover:text-text-200 hover:bg-bg-200"
                                     type="button"
                                     aria-label="Attach file"
                                 >
@@ -334,21 +304,19 @@ export const ClaudeChatInput = ({ onSendMessage, userName = "there", isDark = fa
                                 </button>
                             </div>
 
-                            {/* Right - Send Button */}
-                            <button
-                                onClick={handleSend}
-                                disabled={!hasContent}
-                                className={`
-                                    inline-flex items-center justify-center h-8 w-8 rounded-xl active:scale-95 transition-colors
-                                    ${hasContent
-                                        ? 'bg-accent text-white hover:bg-accent-hover shadow-md'
-                                        : 'bg-accent/30 text-white/60 cursor-default'}
-                                `}
-                                type="button"
-                                aria-label="Send message"
-                            >
-                                <Icons.ArrowUp className="w-4 h-4" />
-                            </button>
+                            {/* Right Tools */}
+                            <div className="flex flex-row items-center min-w-0 gap-1">
+                                {/* Send Button */}
+                                <button
+                                    onClick={handleSend}
+                                    disabled={!hasContent}
+                                    className={`inline-flex items-center justify-center relative shrink-0 transition-colors h-8 w-8 rounded-xl active:scale-95 ${hasContent ? 'bg-accent text-bg-0 hover:bg-accent-hover shadow-md' : 'bg-accent/30 text-bg-0/60 cursor-default'}`}
+                                    type="button"
+                                    aria-label="Send message"
+                                >
+                                    <Icons.ArrowUp className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -375,7 +343,7 @@ export const ClaudeChatInput = ({ onSendMessage, userName = "there", isDark = fa
             </div>
 
             {/* Disclaimer */}
-            <div className="text-center mt-6">
+            <div className="text-center mt-4">
                 <p className="text-xs text-text-500">
                     AI can make mistakes. Please check important information.
                 </p>

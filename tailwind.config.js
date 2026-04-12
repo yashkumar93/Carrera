@@ -19,7 +19,7 @@ module.exports = {
                 'text-300': 'var(--text-300)',
                 'text-400': 'var(--text-400)',
                 'text-500': 'var(--text-500)',
-                'accent': 'var(--accent)',
+                'accent': 'var(--accent-color)',
                 'accent-hover': 'var(--accent-hover)',
                 'primary': 'var(--primary)',
                 'theme': 'var(--border)',

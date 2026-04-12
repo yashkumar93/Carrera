@@ -6,7 +6,16 @@ import ReactMarkdown from 'react-markdown';
 import apiService from '../lib/api';
 import { signInWithGoogle, signOutUser, onAuthChange, createSession, addMessageToSession, getUserSessions, getSession } from '../lib/firebase';
 import ClaudeChatInput from './ui/claude-chat-input';
-import { Menu, PanelLeftClose, Plus, MoreHorizontal, Pencil, Trash2, ArrowUp, LogOut, User } from 'lucide-react';
+import { Menu, PanelLeftClose, Plus, MoreHorizontal, Pencil, Trash2, ArrowUp, LogOut, User, ThumbsUp, ThumbsDown, Settings } from 'lucide-react';
+import ProfileSettings from './ProfileSettings';
+import {
+  ChatSuggestion,
+  ChatSuggestions,
+  ChatSuggestionsContent,
+  ChatSuggestionsDescription,
+  ChatSuggestionsHeader,
+  ChatSuggestionsTitle,
+} from '@/components/ui/chat-suggestions';
 
 // Global styles for dark mode
 const GlobalStyle = createGlobalStyle`
@@ -823,44 +832,6 @@ const TypingIndicator = styled.div`
   }
 `;
 
-const SuggestionsContainer = styled.div`
-  padding: 1rem 1.5rem;
-  border-top: 1px solid ${props => props.theme.border};
-  background: ${props => props.theme.secondaryBackground};
-  
-  .suggestions-label {
-    font-size: 0.875rem;
-    color: ${props => props.theme.secondaryText};
-    margin-bottom: 0.75rem;
-    font-weight: 500;
-  }
-  
-  .suggestions-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-`;
-
-const SuggestionChip = styled.button`
-  background: ${props => props.theme.cardBackground};
-  border: 1px solid ${props => props.theme.border};
-  color: ${props => props.theme.text};
-  padding: 0.5rem 1rem;
-  border-radius: 1.5rem;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-  
-  &:hover {
-    background: ${props => props.theme.buttonBackground};
-    color: ${props => props.theme.userMessageText};
-    border-color: ${props => props.theme.buttonBackground};
-    transform: translateY(-1px);
-  }
-`;
-
 const InputSection = styled.div`
   padding: 1.25rem 1.5rem;
   border-top: 1px solid ${props => props.theme.border};
@@ -949,6 +920,12 @@ const ChatInterface = () => {
 
   // New chat view state
   const [showNewChatView, setShowNewChatView] = useState(true);
+
+  // Feedback state: messageId → 'thumbs_up' | 'thumbs_down'
+  const [messageFeedback, setMessageFeedback] = useState({});
+
+  // Profile settings view
+  const [showSettings, setShowSettings] = useState(false);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -1197,6 +1174,15 @@ Let's start by understanding your current situation. What brings you here today?
     setSuggestions([]);
   };
 
+  const handleFeedback = async (messageId, messageContent, rating) => {
+    // Optimistic update
+    setMessageFeedback(prev => ({ ...prev, [messageId]: rating }));
+    // Persist to backend (non-blocking — failure is silent)
+    if (sessionId) {
+      apiService.submitFeedback(sessionId, rating, messageContent?.slice(0, 300) || null);
+    }
+  };
+
   // Handler for when user sends message from Claude input
   const handleClaudeInputSend = async ({ message, files, pastedContent }) => {
     setShowNewChatView(false);
@@ -1320,6 +1306,19 @@ Let's start by understanding your current situation. What brings you here today?
 
   const theme = isDarkMode ? darkTheme : lightTheme;
 
+  // ── Settings view ──────────────────────────────────────────────────────────
+  if (showSettings) {
+    return (
+      <ThemeProvider theme={theme}>
+        <GlobalStyle />
+        <ProfileSettings
+          isDarkMode={isDarkMode}
+          onBack={() => setShowSettings(false)}
+        />
+      </ThemeProvider>
+    );
+  }
+
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyle />
@@ -1426,6 +1425,26 @@ Let's start by understanding your current situation. What brings you here today?
                     boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
                   }}>
                     <button
+                      onClick={() => { setShowSettings(true); setShowProfileDropdown(false); }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        background: 'transparent',
+                        border: 'none',
+                        borderRadius: '6px',
+                        color: theme.text,
+                        fontSize: '0.875rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = theme.border}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <Settings size={15} /> Profile Settings
+                    </button>
+                    <button
                       onClick={handleSignOut}
                       style={{
                         width: '100%',
@@ -1497,6 +1516,79 @@ Let's start by understanding your current situation. What brings you here today?
                     <div className="timestamp">
                       {formatTime(message.timestamp)}
                     </div>
+                    {/* Feedback buttons — only for AI messages with content */}
+                    {!message.isUser && message.content && sessionId && (
+                      <div style={{
+                        display: 'flex',
+                        gap: '0.375rem',
+                        marginTop: '0.5rem',
+                        alignItems: 'center',
+                      }}>
+                        <button
+                          onClick={() => handleFeedback(message.id, message.content, 'thumbs_up')}
+                          title="Helpful"
+                          style={{
+                            background: messageFeedback[message.id] === 'thumbs_up'
+                              ? (isDarkMode ? 'rgba(34,197,94,0.2)' : 'rgba(34,197,94,0.15)')
+                              : 'transparent',
+                            border: '1px solid',
+                            borderColor: messageFeedback[message.id] === 'thumbs_up'
+                              ? '#22c55e'
+                              : theme.border,
+                            borderRadius: '6px',
+                            padding: '0.25rem 0.5rem',
+                            cursor: messageFeedback[message.id] ? 'default' : 'pointer',
+                            color: messageFeedback[message.id] === 'thumbs_up'
+                              ? '#22c55e'
+                              : theme.secondaryText,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            fontSize: '0.75rem',
+                            transition: 'all 0.15s ease',
+                            pointerEvents: messageFeedback[message.id] ? 'none' : 'auto',
+                          }}
+                        >
+                          <ThumbsUp size={13} />
+                        </button>
+                        <button
+                          onClick={() => handleFeedback(message.id, message.content, 'thumbs_down')}
+                          title="Not helpful"
+                          style={{
+                            background: messageFeedback[message.id] === 'thumbs_down'
+                              ? (isDarkMode ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.15)')
+                              : 'transparent',
+                            border: '1px solid',
+                            borderColor: messageFeedback[message.id] === 'thumbs_down'
+                              ? '#ef4444'
+                              : theme.border,
+                            borderRadius: '6px',
+                            padding: '0.25rem 0.5rem',
+                            cursor: messageFeedback[message.id] ? 'default' : 'pointer',
+                            color: messageFeedback[message.id] === 'thumbs_down'
+                              ? '#ef4444'
+                              : theme.secondaryText,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            fontSize: '0.75rem',
+                            transition: 'all 0.15s ease',
+                            pointerEvents: messageFeedback[message.id] ? 'none' : 'auto',
+                          }}
+                        >
+                          <ThumbsDown size={13} />
+                        </button>
+                        {messageFeedback[message.id] && (
+                          <span style={{
+                            fontSize: '0.7rem',
+                            color: theme.secondaryText,
+                            marginLeft: '0.125rem',
+                          }}>
+                            Feedback recorded
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </MessageBubble>
                 ))}
 
@@ -1517,22 +1609,41 @@ Let's start by understanding your current situation. What brings you here today?
               </MessagesArea>
 
               {suggestions.length > 0 && !isLoading && (
-                <SuggestionsContainer>
-                  <div className="suggestions-label">Quick suggestions</div>
-                  <div className="suggestions-grid">
-                    {suggestions.map((suggestion, index) => (
-                      <SuggestionChip
-                        key={index}
-                        onClick={() => handleSendMessage(suggestion)}
-                      >
-                        {suggestion}
-                      </SuggestionChip>
-                    ))}
-                  </div>
-                </SuggestionsContainer>
+                <div style={{ padding: '1rem 1.5rem', borderTop: `1px solid ${theme.border}`, background: theme.secondaryBackground }}>
+                  <ChatSuggestions>
+                    <ChatSuggestionsHeader>
+                      <ChatSuggestionsTitle>Try these prompts:</ChatSuggestionsTitle>
+                      <ChatSuggestionsDescription>
+                        Click a suggestion to get started
+                      </ChatSuggestionsDescription>
+                    </ChatSuggestionsHeader>
+                    <ChatSuggestionsContent>
+                      {suggestions.map((suggestion, index) => (
+                        <ChatSuggestion
+                          key={index}
+                          onClick={() => handleSendMessage(suggestion)}
+                        >
+                          {suggestion}
+                        </ChatSuggestion>
+                      ))}
+                    </ChatSuggestionsContent>
+                  </ChatSuggestions>
+                </div>
               )}
 
               <InputSection>
+                <div style={{
+                  maxWidth: '768px',
+                  margin: '0 auto',
+                  paddingBottom: '0.375rem',
+                  textAlign: 'center',
+                  fontSize: '0.7rem',
+                  color: theme.secondaryText,
+                  lineHeight: 1.4,
+                  opacity: 0.7,
+                }}>
+                  AI career guidance is for informational purposes only and does not replace professional counseling. Salary estimates reflect general market data.
+                </div>
                 <div className="input-container">
                   <MessageInput
                     ref={inputRef}

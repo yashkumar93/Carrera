@@ -14,11 +14,9 @@ import {
     TrendingUp,
     Map,
     ArrowRight,
-    Zap,
     Star,
     Globe,
     Trophy,
-    Users,
     User,
     CheckCircle2,
     Lock
@@ -265,7 +263,15 @@ const LandingPage = ({ onSignIn }) => {
                             <div className="text-5xl font-extrabold mb-2 tracking-tighter">4.9/5</div>
                             <div className="text-[11px] font-extrabold text-blue-100 uppercase tracking-widest mb-6">User Clarity Rating</div>
                             <div className="flex -space-x-3">
-                                {[1, 2, 3, 4, 5].map(i => <img key={i} src={`https://i.pravatar.cc/100?u=${i + 60}`} className="w-10 h-10 rounded-full border-4 border-primary shadow-xl" alt="Testimonial" />)}
+                                {["AL", "KR", "MN", "SJ", "DP"].map((initials, i) => (
+                                    <div
+                                        key={i}
+                                        className="w-10 h-10 rounded-full border-4 border-primary shadow-xl bg-blue-100 text-primary text-[10px] font-extrabold flex items-center justify-center"
+                                        aria-label={`Testimonial profile ${i + 1}`}
+                                    >
+                                        {initials}
+                                    </div>
+                                ))}
                             </div>
                         </BentoCard>
 
@@ -414,7 +420,7 @@ const LandingPage = ({ onSignIn }) => {
 
             {/* CTA Section */}
             <section className="py-24">
-                <div className="max-w-[1200px] mx-auto px-6 lg:px-12">
+                <div className="max-w-300 mx-auto px-6 lg:px-12">
                     <div className="bg-[#0F172A] rounded-[4rem] p-12 md:p-24 text-center text-white relative overflow-hidden reveal border-[10px] border-white/5 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)]">
                         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-[120px]"></div>
                         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-500/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-[100px]"></div>
