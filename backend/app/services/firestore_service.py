@@ -393,6 +393,367 @@ def get_assessment_history(user_id: str) -> List[Dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------
+# Mentorship Marketplace
+# ---------------------------------------------------------------------------
+
+def register_mentor(user_id: str, data: Dict[str, Any]) -> str:
+    """Create or overwrite a mentor profile. Returns the mentor doc ID (== user_id)."""
+    db = get_firestore_client()
+    doc_ref = db.collection("mentors").document(user_id)
+    doc_ref.set({
+        **data,
+        "uid": user_id,
+        "rating": data.get("rating", 0.0),
+        "review_count": data.get("review_count", 0),
+        "verified": False,
+        "active": True,
+        "createdAt": firestore.SERVER_TIMESTAMP,
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+    }, merge=True)
+    logger.info("Registered/updated mentor %s", user_id)
+    return user_id
+
+
+def get_mentor(mentor_id: str) -> Optional[Dict[str, Any]]:
+    db = get_firestore_client()
+    doc = db.collection("mentors").document(mentor_id).get()
+    return {"id": doc.id, **doc.to_dict()} if doc.exists else None
+
+
+def list_mentors(
+    expertise: Optional[str] = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> List[Dict[str, Any]]:
+    """List active mentors, optionally filtered by expertise tag."""
+    db = get_firestore_client()
+    q = db.collection("mentors").where(filter=FieldFilter("active", "==", True))
+    if expertise:
+        q = q.where(filter=FieldFilter("expertise", "array_contains", expertise))
+    docs = list(q.order_by("rating", direction=firestore.Query.DESCENDING).offset(offset).limit(limit).stream())
+    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+
+
+def create_mentorship_request(requester_id: str, mentor_id: str, data: Dict[str, Any]) -> str:
+    """Submit a mentorship session request."""
+    db = get_firestore_client()
+    doc_ref = db.collection("mentorship_requests").document()
+    doc_ref.set({
+        **data,
+        "requester_id": requester_id,
+        "mentor_id": mentor_id,
+        "status": "pending",   # pending | accepted | declined | completed
+        "createdAt": firestore.SERVER_TIMESTAMP,
+    })
+    logger.info("Mentorship request %s → mentor %s", doc_ref.id, mentor_id)
+    return doc_ref.id
+
+
+def get_mentorship_requests(user_id: str, as_mentor: bool = False) -> List[Dict[str, Any]]:
+    """Fetch requests where user is the requester (or mentor if as_mentor=True)."""
+    db = get_firestore_client()
+    field = "mentor_id" if as_mentor else "requester_id"
+    docs = (
+        db.collection("mentorship_requests")
+        .where(filter=FieldFilter(field, "==", user_id))
+        .order_by("createdAt", direction=firestore.Query.DESCENDING)
+        .limit(50)
+        .stream()
+    )
+    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+
+
+def update_mentorship_request_status(request_id: str, status: str) -> None:
+    db = get_firestore_client()
+    db.collection("mentorship_requests").document(request_id).update({
+        "status": status,
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+    })
+
+
+def add_mentor_review(mentor_id: str, reviewer_id: str, rating: float, comment: str) -> None:
+    """Add a review and recompute the mentor's average rating."""
+    db = get_firestore_client()
+    review_ref = db.collection("mentors").document(mentor_id).collection("reviews").document()
+    review_ref.set({
+        "reviewer_id": reviewer_id,
+        "rating": rating,
+        "comment": comment,
+        "createdAt": firestore.SERVER_TIMESTAMP,
+    })
+    # Recompute average
+    reviews = list(db.collection("mentors").document(mentor_id).collection("reviews").stream())
+    if reviews:
+        avg = sum(r.to_dict().get("rating", 0) for r in reviews) / len(reviews)
+        db.collection("mentors").document(mentor_id).update({
+            "rating": round(avg, 2),
+            "review_count": len(reviews),
+        })
+
+
+# ---------------------------------------------------------------------------
+# Community Q&A Forum
+# ---------------------------------------------------------------------------
+
+def create_post(user_id: str, data: Dict[str, Any]) -> str:
+    db = get_firestore_client()
+    doc_ref = db.collection("community_posts").document()
+    doc_ref.set({
+        **data,
+        "author_id": user_id,
+        "upvotes": 0,
+        "reply_count": 0,
+        "voters": [],
+        "createdAt": firestore.SERVER_TIMESTAMP,
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+    })
+    logger.info("Community post %s by user %s", doc_ref.id, user_id)
+    return doc_ref.id
+
+
+def list_posts(tag: Optional[str] = None, limit: int = 20, offset: int = 0) -> List[Dict[str, Any]]:
+    db = get_firestore_client()
+    q = db.collection("community_posts")
+    if tag:
+        q = q.where(filter=FieldFilter("tags", "array_contains", tag))
+    docs = list(q.order_by("createdAt", direction=firestore.Query.DESCENDING).offset(offset).limit(limit).stream())
+    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+
+
+def get_post(post_id: str) -> Optional[Dict[str, Any]]:
+    db = get_firestore_client()
+    doc = db.collection("community_posts").document(post_id).get()
+    return {"id": doc.id, **doc.to_dict()} if doc.exists else None
+
+
+def add_reply(post_id: str, user_id: str, content: str) -> str:
+    db = get_firestore_client()
+    reply_ref = db.collection("community_posts").document(post_id).collection("replies").document()
+    reply_ref.set({
+        "author_id": user_id,
+        "content": content,
+        "upvotes": 0,
+        "createdAt": firestore.SERVER_TIMESTAMP,
+    })
+    # Increment reply_count
+    db.collection("community_posts").document(post_id).update({
+        "reply_count": firestore.Increment(1),
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+    })
+    return reply_ref.id
+
+
+def get_replies(post_id: str) -> List[Dict[str, Any]]:
+    db = get_firestore_client()
+    docs = (
+        db.collection("community_posts").document(post_id)
+        .collection("replies")
+        .order_by("createdAt")
+        .stream()
+    )
+    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+
+
+def vote_post(post_id: str, user_id: str) -> int:
+    """Toggle upvote on a post. Returns new upvote count."""
+    db = get_firestore_client()
+    doc_ref = db.collection("community_posts").document(post_id)
+    doc = doc_ref.get()
+    if not doc.exists:
+        return 0
+    data = doc.to_dict()
+    voters = data.get("voters", [])
+    if user_id in voters:
+        voters.remove(user_id)
+        delta = -1
+    else:
+        voters.append(user_id)
+        delta = 1
+    new_count = data.get("upvotes", 0) + delta
+    doc_ref.update({"upvotes": new_count, "voters": voters})
+    return new_count
+
+
+def delete_post(post_id: str) -> None:
+    db = get_firestore_client()
+    db.collection("community_posts").document(post_id).delete()
+
+
+# ---------------------------------------------------------------------------
+# Employer Partnerships
+# ---------------------------------------------------------------------------
+
+def create_employer(data: Dict[str, Any]) -> str:
+    db = get_firestore_client()
+    doc_ref = db.collection("employers").document()
+    doc_ref.set({
+        **data,
+        "verified": False,
+        "active": True,
+        "createdAt": firestore.SERVER_TIMESTAMP,
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+    })
+    logger.info("Employer created: %s", doc_ref.id)
+    return doc_ref.id
+
+
+def list_employers(career: Optional[str] = None, limit: int = 20) -> List[Dict[str, Any]]:
+    db = get_firestore_client()
+    q = db.collection("employers").where(filter=FieldFilter("active", "==", True))
+    if career:
+        q = q.where(filter=FieldFilter("hiring_for", "array_contains", career))
+    docs = list(q.limit(limit).stream())
+    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+
+
+def get_employer(employer_id: str) -> Optional[Dict[str, Any]]:
+    db = get_firestore_client()
+    doc = db.collection("employers").document(employer_id).get()
+    return {"id": doc.id, **doc.to_dict()} if doc.exists else None
+
+
+def update_employer(employer_id: str, data: Dict[str, Any]) -> None:
+    db = get_firestore_client()
+    db.collection("employers").document(employer_id).set(
+        {**data, "updatedAt": firestore.SERVER_TIMESTAMP},
+        merge=True,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Public API Key Management
+# ---------------------------------------------------------------------------
+
+import secrets
+
+
+def generate_api_key(user_id: str, name: str) -> Dict[str, Any]:
+    """Generate and store a new API key for the user. Returns the key (shown once)."""
+    db = get_firestore_client()
+    raw_key = "cra_" + secrets.token_urlsafe(32)
+    doc_ref = db.collection("api_keys").document()
+    doc_ref.set({
+        "user_id": user_id,
+        "name": name,
+        "key_hash": _hash_api_key(raw_key),
+        "key_preview": raw_key[:10] + "...",
+        "request_count": 0,
+        "last_used": None,
+        "active": True,
+        "createdAt": firestore.SERVER_TIMESTAMP,
+    })
+    logger.info("API key created for user %s — id=%s", user_id, doc_ref.id)
+    return {"id": doc_ref.id, "key": raw_key, "name": name, "key_preview": raw_key[:10] + "..."}
+
+
+def list_api_keys(user_id: str) -> List[Dict[str, Any]]:
+    db = get_firestore_client()
+    docs = (
+        db.collection("api_keys")
+        .where(filter=FieldFilter("user_id", "==", user_id))
+        .where(filter=FieldFilter("active", "==", True))
+        .stream()
+    )
+    return [{"id": doc.id, **{k: v for k, v in doc.to_dict().items() if k != "key_hash"}} for doc in docs]
+
+
+def revoke_api_key(key_id: str, user_id: str) -> bool:
+    db = get_firestore_client()
+    doc = db.collection("api_keys").document(key_id).get()
+    if not doc.exists or doc.to_dict().get("user_id") != user_id:
+        return False
+    db.collection("api_keys").document(key_id).update({"active": False})
+    return True
+
+
+def verify_api_key(raw_key: str) -> Optional[Dict[str, Any]]:
+    """Verify an API key and return its metadata, or None if invalid."""
+    db = get_firestore_client()
+    key_hash = _hash_api_key(raw_key)
+    docs = list(
+        db.collection("api_keys")
+        .where(filter=FieldFilter("key_hash", "==", key_hash))
+        .where(filter=FieldFilter("active", "==", True))
+        .limit(1)
+        .stream()
+    )
+    if not docs:
+        return None
+    doc = docs[0]
+    # Update usage stats
+    db.collection("api_keys").document(doc.id).update({
+        "request_count": firestore.Increment(1),
+        "last_used": firestore.SERVER_TIMESTAMP,
+    })
+    return {"id": doc.id, **doc.to_dict()}
+
+
+def _hash_api_key(raw_key: str) -> str:
+    import hashlib
+    return hashlib.sha256(raw_key.encode()).hexdigest()
+
+
+# ---------------------------------------------------------------------------
+# Advanced Analytics — feedback topic analysis
+# ---------------------------------------------------------------------------
+
+def get_feedback_analytics(limit_sessions: int = 200) -> Dict[str, Any]:
+    """Analyse feedback across recent sessions to surface recommendation quality patterns."""
+    db = get_firestore_client()
+    sessions = list(
+        db.collection("sessions")
+        .order_by("updatedAt", direction=firestore.Query.DESCENDING)
+        .limit(limit_sessions)
+        .stream()
+    )
+
+    stage_feedback: Dict[str, Dict[str, int]] = {}
+    word_freq: Dict[str, int] = {}
+    total_up = 0
+    total_down = 0
+
+    for session_doc in sessions:
+        data = session_doc.to_dict()
+        stage = data.get("stage", "discovery")
+        feedbacks = data.get("feedbacks", [])
+
+        for fb in feedbacks:
+            rating = fb.get("rating", "")
+            if rating == "thumbs_up":
+                total_up += 1
+                stage_feedback.setdefault(stage, {"up": 0, "down": 0})["up"] += 1
+            elif rating == "thumbs_down":
+                total_down += 1
+                stage_feedback.setdefault(stage, {"up": 0, "down": 0})["down"] += 1
+                # Extract keywords from negative feedback for improvement signal
+                comment = fb.get("comment", "") + " " + fb.get("message_snapshot", "")
+                for word in comment.lower().split():
+                    if len(word) > 4:
+                        word_freq[word] = word_freq.get(word, 0) + 1
+
+    total = total_up + total_down
+    top_negative_keywords = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:10]
+
+    # Compute per-stage satisfaction rates
+    stage_satisfaction = {}
+    for stage, counts in stage_feedback.items():
+        t = counts["up"] + counts["down"]
+        stage_satisfaction[stage] = {
+            "thumbs_up": counts["up"],
+            "thumbs_down": counts["down"],
+            "satisfaction_rate": round(counts["up"] / t * 100, 1) if t else 0,
+        }
+
+    return {
+        "total_feedback_analysed": total,
+        "overall_satisfaction": round(total_up / total * 100, 1) if total else 0,
+        "stage_satisfaction": stage_satisfaction,
+        "top_negative_keywords": [{"word": w, "count": c} for w, c in top_negative_keywords],
+        "sessions_analysed": len(sessions),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Health check
 # ---------------------------------------------------------------------------
 

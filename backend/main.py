@@ -12,7 +12,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-from app.routes import chat, session, health, auth, admin, resume, assessment
+from app.routes import chat, session, health, auth, admin, resume, assessment, mentorship, community, employers, public_api
 from app.config import settings
 from app.services.firestore_service import cleanup_firebase
 
@@ -80,6 +80,10 @@ app.include_router(session.router, prefix="/api", tags=["Session"])
 app.include_router(admin.router, prefix="/api", tags=["Admin"])
 app.include_router(resume.router, prefix="/api", tags=["Resume"])
 app.include_router(assessment.router, prefix="/api", tags=["Assessment"])
+app.include_router(mentorship.router, prefix="/api", tags=["Mentorship"])
+app.include_router(community.router, prefix="/api", tags=["Community"])
+app.include_router(employers.router, prefix="/api", tags=["Employers"])
+app.include_router(public_api.router, prefix="/api", tags=["Public API"])
 
 
 @app.get("/")

@@ -10,6 +10,7 @@ export default function AdminPage() {
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [activeTab, setActiveTab] = useState('stats');
+  const [feedbackAnalytics, setFeedbackAnalytics] = useState(null);
   const [error, setError] = useState(null);
   const [roleUpdating, setRoleUpdating] = useState(null);
   const [toast, setToast] = useState(null);
@@ -71,6 +72,9 @@ export default function AdminPage() {
   useEffect(() => {
     if (activeTab === 'users' && users.length === 0) {
       fetchUsers();
+    }
+    if (activeTab === 'analytics' && !feedbackAnalytics) {
+      apiService.get('/admin/feedback-analytics').then(setFeedbackAnalytics).catch(() => {});
     }
   }, [activeTab]);
 
@@ -171,10 +175,8 @@ export default function AdminPage() {
       </div>
 
       <div style={s.tabs}>
-        {['stats', 'users'].map(tab => (
-          <button key={tab} style={s.tab(activeTab === tab)} onClick={() => setActiveTab(tab)}>
-            {tab === 'stats' ? 'Platform Stats' : 'User Management'}
-          </button>
+        {[['stats', 'Platform Stats'], ['users', 'User Management'], ['analytics', 'Feedback Analytics']].map(([id, label]) => (
+          <button key={id} style={s.tab(activeTab === id)} onClick={() => setActiveTab(id)}>{label}</button>
         ))}
       </div>
 
@@ -230,6 +232,66 @@ export default function AdminPage() {
             </div>
           </div>
         </>
+      )}
+
+      {activeTab === 'analytics' && (
+        <div>
+          {!feedbackAnalytics ? (
+            <div style={{ color: '#555' }}>Loading analytics...</div>
+          ) : (
+            <>
+              <div style={s.grid}>
+                <div style={s.card}>
+                  <div style={s.cardLabel}>Sessions Analysed</div>
+                  <div style={s.cardValue}>{feedbackAnalytics.sessions_analysed}</div>
+                </div>
+                <div style={s.card}>
+                  <div style={s.cardLabel}>Feedback Analysed</div>
+                  <div style={s.cardValue}>{feedbackAnalytics.total_feedback_analysed}</div>
+                </div>
+                <div style={s.card}>
+                  <div style={s.cardLabel}>Overall Satisfaction</div>
+                  <div style={{ ...s.cardValue, color: feedbackAnalytics.overall_satisfaction >= 75 ? '#4ade80' : feedbackAnalytics.overall_satisfaction >= 50 ? '#facc15' : '#f87171' }}>
+                    {feedbackAnalytics.overall_satisfaction}%
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                <div style={s.card}>
+                  <div style={s.sectionTitle}>Satisfaction by Stage</div>
+                  {Object.entries(feedbackAnalytics.stage_satisfaction || {}).map(([stage, data]) => (
+                    <div key={stage} style={{ padding: '0.5rem 0', borderBottom: '1px solid #111' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                        <span style={{ color: '#ccc', textTransform: 'capitalize' }}>{stage}</span>
+                        <span style={{ color: data.satisfaction_rate >= 75 ? '#4ade80' : data.satisfaction_rate >= 50 ? '#facc15' : '#f87171', fontWeight: 700 }}>{data.satisfaction_rate}%</span>
+                      </div>
+                      <div style={{ background: '#1a1a1a', borderRadius: '20px', height: '5px', overflow: 'hidden' }}>
+                        <div style={{ background: data.satisfaction_rate >= 75 ? '#4ade80' : data.satisfaction_rate >= 50 ? '#facc15' : '#f87171', height: '100%', width: `${data.satisfaction_rate}%`, borderRadius: '20px' }} />
+                      </div>
+                      <div style={{ color: '#555', fontSize: '0.72rem', marginTop: '0.2rem' }}>👍 {data.thumbs_up} · 👎 {data.thumbs_down}</div>
+                    </div>
+                  ))}
+                  {!Object.keys(feedbackAnalytics.stage_satisfaction || {}).length && <div style={{ color: '#555' }}>No data yet</div>}
+                </div>
+
+                <div style={s.card}>
+                  <div style={s.sectionTitle}>Top Negative Keywords (improvement signal)</div>
+                  {(feedbackAnalytics.top_negative_keywords || []).length === 0 ? (
+                    <div style={{ color: '#555' }}>No negative feedback keywords yet</div>
+                  ) : (
+                    feedbackAnalytics.top_negative_keywords.map((item, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.35rem 0', borderBottom: '1px solid #111', fontSize: '0.85rem' }}>
+                        <span style={{ color: '#f87171', fontFamily: 'monospace' }}>{item.word}</span>
+                        <span style={{ color: '#555' }}>{item.count}×</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       )}
 
       {activeTab === 'users' && (

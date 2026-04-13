@@ -42,6 +42,12 @@ async def get_stats(user: Dict = Depends(admin_user)):
     return stats
 
 
+@router.get("/admin/feedback-analytics")
+async def get_feedback_analytics(user: Dict = Depends(admin_user)):
+    """Return feedback topic analysis and recommendation quality signals."""
+    return firestore_service.get_feedback_analytics()
+
+
 # ---------------------------------------------------------------------------
 # User management
 # ---------------------------------------------------------------------------

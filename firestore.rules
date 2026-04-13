@@ -26,6 +26,62 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'counselor'];
     }
 
+    // Mentors (public read, self-write)
+    match /mentors/{mentorId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(mentorId) || isAdmin();
+
+      match /reviews/{reviewId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated() && request.auth.uid != mentorId;
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // Mentorship requests
+    match /mentorship_requests/{requestId} {
+      allow read: if isAuthenticated() && (
+        resource.data.requester_id == request.auth.uid ||
+        resource.data.mentor_id == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        resource.data.mentor_id == request.auth.uid || isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Community posts (authenticated read/write, author delete)
+    match /community_posts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated() && (
+        resource.data.author_id == request.auth.uid || isAdmin()
+      );
+
+      match /replies/{replyId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated();
+        allow delete: if isAuthenticated() && (
+          resource.data.author_id == request.auth.uid || isAdmin()
+        );
+      }
+    }
+
+    // Employers (public read, admin write)
+    match /employers/{employerId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // API keys (owner read, no direct client write — managed via backend)
+    match /api_keys/{keyId} {
+      allow read: if isAuthenticated() && resource.data.user_id == request.auth.uid;
+      allow write: if false;  // backend-only via Admin SDK
+    }
+
     // Root-level sessions collection
     match /sessions/{sessionId} {
       allow read: if isAuthenticated() && (

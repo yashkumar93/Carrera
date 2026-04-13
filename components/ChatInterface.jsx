@@ -1470,6 +1470,23 @@ Let's start by understanding your current situation. What brings you here today?
                     >
                       🎯 Aptitude Assessment
                     </button>
+                    {[
+                      { href: '/mentors', icon: '🎓', label: 'Find a Mentor' },
+                      { href: '/community', icon: '💬', label: 'Community Forum' },
+                      { href: '/employers', icon: '🏢', label: 'Employer Partners' },
+                      { href: '/developers', icon: '🔑', label: 'Developer API' },
+                    ].map(({ href, icon, label }) => (
+                      <button
+                        key={href}
+                        onClick={() => { setShowProfileDropdown(false); window.location.href = href; }}
+                        style={{ width: '100%', padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: '6px', color: theme.text, fontSize: '0.875rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        onMouseOver={(e) => e.currentTarget.style.background = theme.border}
+                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        {icon} {label}
+                      </button>
+                    ))}
+                    <div style={{ borderTop: `1px solid ${theme.border}`, margin: '4px 0' }} />
                     <button
                       onClick={handleSignOut}
                       style={{
