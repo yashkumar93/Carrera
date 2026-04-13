@@ -255,6 +255,144 @@ def save_message_feedback(
 
 
 # ---------------------------------------------------------------------------
+# Role-Based Access Control
+# ---------------------------------------------------------------------------
+
+VALID_ROLES = {"user", "admin", "counselor"}
+
+
+def get_user_role(user_id: str) -> str:
+    """Return the user's role from Firestore. Defaults to 'user' if not set."""
+    try:
+        db = get_firestore_client()
+        doc = db.collection("users").document(user_id).get()
+        if doc.exists:
+            return doc.to_dict().get("role", "user")
+    except Exception as exc:
+        logger.warning("Could not fetch role for user %s: %s", user_id, exc)
+    return "user"
+
+
+def set_user_role(user_id: str, role: str) -> None:
+    """Set a user's role. Role must be one of VALID_ROLES."""
+    if role not in VALID_ROLES:
+        raise ValueError(f"Invalid role '{role}'. Must be one of: {VALID_ROLES}")
+    db = get_firestore_client()
+    db.collection("users").document(user_id).set(
+        {"role": role, "updatedAt": firestore.SERVER_TIMESTAMP},
+        merge=True,
+    )
+    logger.info("Set role '%s' for user %s", role, user_id)
+
+
+# ---------------------------------------------------------------------------
+# Admin analytics
+# ---------------------------------------------------------------------------
+
+def get_admin_stats() -> Dict[str, Any]:
+    """Aggregate platform-wide stats for the admin dashboard."""
+    db = get_firestore_client()
+
+    # Count total users
+    users_docs = list(db.collection("users").stream())
+    total_users = len(users_docs)
+
+    # Count users by role
+    role_counts: Dict[str, int] = {}
+    for doc in users_docs:
+        role = doc.to_dict().get("role", "user")
+        role_counts[role] = role_counts.get(role, 0) + 1
+
+    # Count total sessions and messages
+    sessions_docs = list(db.collection("sessions").stream())
+    total_sessions = len(sessions_docs)
+    total_messages = 0
+    total_feedback = 0
+    thumbs_up = 0
+    thumbs_down = 0
+    stage_counts: Dict[str, int] = {}
+
+    for doc in sessions_docs:
+        data = doc.to_dict()
+        total_messages += len(data.get("messages", []))
+        feedbacks = data.get("feedbacks", [])
+        total_feedback += len(feedbacks)
+        for fb in feedbacks:
+            if fb.get("rating") == "thumbs_up":
+                thumbs_up += 1
+            elif fb.get("rating") == "thumbs_down":
+                thumbs_down += 1
+        stage = data.get("stage", "discovery")
+        stage_counts[stage] = stage_counts.get(stage, 0) + 1
+
+    return {
+        "total_users": total_users,
+        "total_sessions": total_sessions,
+        "total_messages": total_messages,
+        "total_feedback": total_feedback,
+        "thumbs_up": thumbs_up,
+        "thumbs_down": thumbs_down,
+        "thumbs_up_rate": round(thumbs_up / total_feedback * 100, 1) if total_feedback else 0,
+        "role_counts": role_counts,
+        "stage_counts": stage_counts,
+        "avg_messages_per_session": round(total_messages / total_sessions, 1) if total_sessions else 0,
+    }
+
+
+def get_all_users(limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+    """List all user profiles (admin only)."""
+    db = get_firestore_client()
+    docs = list(db.collection("users").offset(offset).limit(limit).stream())
+    return [{"uid": doc.id, **doc.to_dict()} for doc in docs]
+
+
+# ---------------------------------------------------------------------------
+# Resume / Skill Extraction Storage
+# ---------------------------------------------------------------------------
+
+def save_resume_analysis(user_id: str, analysis: Dict[str, Any]) -> None:
+    """Store Gemini-extracted resume analysis in the user's profile."""
+    db = get_firestore_client()
+    db.collection("users").document(user_id).set(
+        {
+            "resume_analysis": analysis,
+            "updatedAt": firestore.SERVER_TIMESTAMP,
+        },
+        merge=True,
+    )
+    logger.info("Saved resume analysis for user %s", user_id)
+
+
+# ---------------------------------------------------------------------------
+# Aptitude Assessments Storage
+# ---------------------------------------------------------------------------
+
+def save_assessment_result(user_id: str, result: Dict[str, Any]) -> str:
+    """Store a scored assessment result and return its document ID."""
+    db = get_firestore_client()
+    doc_ref = db.collection("users").document(user_id).collection("assessments").document()
+    doc_ref.set({
+        **result,
+        "createdAt": firestore.SERVER_TIMESTAMP,
+    })
+    logger.info("Saved assessment for user %s — id=%s", user_id, doc_ref.id)
+    return doc_ref.id
+
+
+def get_assessment_history(user_id: str) -> List[Dict[str, Any]]:
+    """List past assessments for a user, newest first."""
+    db = get_firestore_client()
+    docs = (
+        db.collection("users").document(user_id)
+        .collection("assessments")
+        .order_by("createdAt", direction=firestore.Query.DESCENDING)
+        .limit(20)
+        .stream()
+    )
+    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+
+
+# ---------------------------------------------------------------------------
 # Health check
 # ---------------------------------------------------------------------------
 

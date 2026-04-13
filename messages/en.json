@@ -1,0 +1,159 @@
+{
+  "app": {
+    "name": "Careerra",
+    "tagline": "Your AI-powered career guidance assistant"
+  },
+  "nav": {
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "profileSettings": "Profile Settings",
+    "aptitudeAssessment": "Aptitude Assessment",
+    "admin": "Admin Dashboard"
+  },
+  "landing": {
+    "headline": "Discover Your Ideal Career Path",
+    "subheadline": "AI-powered guidance that goes beyond job titles — with real salary data, skill gap analysis, and personalised roadmaps.",
+    "ctaSignIn": "Get Started",
+    "feature1Title": "Career Discovery",
+    "feature1Desc": "Find careers that match your interests, skills, and goals with data-backed recommendations.",
+    "feature2Title": "Skill Assessment",
+    "feature2Desc": "Take personalised quizzes to discover your strengths and identify skill gaps for your target role.",
+    "feature3Title": "Learning Roadmap",
+    "feature3Desc": "Get a step-by-step 30-90 day action plan with courses, projects, and certifications.",
+    "feature4Title": "Resume Analysis",
+    "feature4Desc": "Upload your PDF resume to auto-extract skills and get instant career match recommendations."
+  },
+  "auth": {
+    "signInTitle": "Welcome back",
+    "signUpTitle": "Create your account",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "nameLabel": "Full Name",
+    "signInBtn": "Sign In",
+    "signUpBtn": "Create Account",
+    "googleBtn": "Continue with Google",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "signUpLink": "Sign up",
+    "signInLink": "Sign in",
+    "resetSent": "Password reset email sent. Check your inbox.",
+    "backToSignIn": "Back to sign in"
+  },
+  "chat": {
+    "newChat": "New Chat",
+    "noSessions": "No conversations yet",
+    "startPrompt": "Start a new chat to begin your career journey",
+    "inputPlaceholder": "Ask me about careers, skills, courses...",
+    "send": "Send",
+    "loading": "Thinking...",
+    "stages": {
+      "discovery": "Personal Discovery",
+      "assessment": "Skills Assessment",
+      "exploration": "Career Exploration",
+      "roadmap": "Strategic Roadmap"
+    }
+  },
+  "profile": {
+    "title": "Profile Settings",
+    "nameLabel": "Name",
+    "educationLabel": "Education",
+    "interestsLabel": "Career Interests",
+    "skillsLabel": "Skills",
+    "experienceLabel": "Experience Level",
+    "bioLabel": "Bio",
+    "saveBtn": "Save Profile",
+    "saved": "Saved!",
+    "resumeTitle": "Resume Analysis",
+    "resumeDesc": "Upload your PDF resume to auto-extract skills and get career match recommendations.",
+    "uploadBtn": "Upload Resume",
+    "hideBtn": "Hide",
+    "dangerZone": "Danger Zone",
+    "deleteAccount": "Delete My Account",
+    "deleteWarning": "Permanently delete your account and all associated data. This action cannot be undone.",
+    "deleteConfirm": "Type DELETE to confirm:",
+    "deleteBtn": "Permanently Delete",
+    "cancelBtn": "Cancel"
+  },
+  "assessment": {
+    "title": "Aptitude Assessment",
+    "intro": "Take a personalised quiz to discover how well you match a target career.",
+    "careerLabel": "Target Career",
+    "careerPlaceholder": "e.g. Data Scientist, UX Designer, Software Engineer",
+    "numQuestionsLabel": "Number of Questions",
+    "startBtn": "Start Assessment",
+    "generating": "Generating questions...",
+    "scoring": "Scoring your responses...",
+    "scoringDesc": "Gemini AI is generating your skill gap report",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next",
+    "results": {
+      "correct": "correct",
+      "summary": "Summary",
+      "skillBreakdown": "Skill Breakdown",
+      "strengths": "Strengths",
+      "gaps": "Skill Gaps",
+      "priorityLearning": "Priority Learning Actions",
+      "nextStep": "Recommended Next Step",
+      "takeAnother": "Take Another Assessment",
+      "done": "Done"
+    }
+  },
+  "resume": {
+    "dropzone": "Drop your PDF resume here",
+    "orClick": "or click to browse — PDF only, max 5 MB",
+    "chooseFile": "Choose File",
+    "parsing": "Parsing your resume with AI...",
+    "extracting": "Extracting skills, experience, and career matches...",
+    "success": "Resume parsed — profile updated automatically",
+    "skillsExtracted": "Skills Extracted",
+    "certifications": "Certifications",
+    "recommendedCareers": "Recommended Careers",
+    "transferableSkills": "Transferable Skills",
+    "uploadAnother": "Upload another resume",
+    "errorPdfOnly": "Only PDF files are supported.",
+    "errorTooLarge": "File too large. Maximum size is 5 MB."
+  },
+  "admin": {
+    "title": "Admin Dashboard",
+    "subtitle": "Careerra platform analytics & user management",
+    "tabStats": "Platform Stats",
+    "tabUsers": "User Management",
+    "totalUsers": "Total Users",
+    "totalSessions": "Total Sessions",
+    "totalMessages": "Total Messages",
+    "feedbackCollected": "Feedback Collected",
+    "thumbsUpRate": "Thumbs-Up Rate",
+    "target": "target",
+    "usersByRole": "Users by Role",
+    "sessionsByStage": "Sessions by Stage",
+    "allUsers": "All Users",
+    "noUsers": "No users found",
+    "columns": {
+      "nameEmail": "Name / Email",
+      "uid": "UID",
+      "role": "Role",
+      "experience": "Experience",
+      "onboarded": "Onboarded",
+      "changeRole": "Change Role"
+    }
+  },
+  "errors": {
+    "notAuthenticated": "Not authenticated",
+    "adminRequired": "Access denied — admin role required.",
+    "loadFailed": "Failed to load",
+    "saveFailed": "Failed to save",
+    "retryHint": "Please try again."
+  },
+  "common": {
+    "loading": "Loading...",
+    "yes": "Yes",
+    "no": "No",
+    "back": "Back",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "close": "Close"
+  }
+}

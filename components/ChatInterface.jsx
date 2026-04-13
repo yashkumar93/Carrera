@@ -8,6 +8,8 @@ import { signInWithGoogle, signOutUser, onAuthChange, createSession, addMessageT
 import ClaudeChatInput from './ui/claude-chat-input';
 import { Menu, PanelLeftClose, Plus, MoreHorizontal, Pencil, Trash2, ArrowUp, LogOut, User, ThumbsUp, ThumbsDown, Settings } from 'lucide-react';
 import ProfileSettings from './ProfileSettings';
+import AptitudeAssessment from './AptitudeAssessment';
+import LanguageSwitcher from './LanguageSwitcher';
 import {
   ChatSuggestion,
   ChatSuggestions,
@@ -927,6 +929,9 @@ const ChatInterface = () => {
   // Profile settings view
   const [showSettings, setShowSettings] = useState(false);
 
+  // Aptitude assessment modal
+  const [showAssessment, setShowAssessment] = useState(false);
+
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const profileDropdownRef = useRef(null);
@@ -1322,6 +1327,7 @@ Let's start by understanding your current situation. What brings you here today?
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyle />
+      {showAssessment && <AptitudeAssessment onClose={() => setShowAssessment(false)} />}
       <AppContainer>
         {/* Mobile Overlay */}
         <SidebarOverlay $isOpen={mobileSidebarOpen} onClick={() => setMobileSidebarOpen(false)} />
@@ -1445,6 +1451,26 @@ Let's start by understanding your current situation. What brings you here today?
                       <Settings size={15} /> Profile Settings
                     </button>
                     <button
+                      onClick={() => { setShowAssessment(true); setShowProfileDropdown(false); }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        background: 'transparent',
+                        border: 'none',
+                        borderRadius: '6px',
+                        color: theme.text,
+                        fontSize: '0.875rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = theme.border}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      🎯 Aptitude Assessment
+                    </button>
+                    <button
                       onClick={handleSignOut}
                       style={{
                         width: '100%',
@@ -1488,6 +1514,7 @@ Let's start by understanding your current situation. What brings you here today?
           <Header>
             <Title>AI Career Counselor</Title>
             <HeaderRight>
+              <LanguageSwitcher />
             </HeaderRight>
           </Header>
 

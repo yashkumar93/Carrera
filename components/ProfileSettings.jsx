@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import apiService from '../lib/api';
 import { deleteCurrentUser, signOutUser } from '../lib/firebase';
 import { ArrowLeft, Save, Trash2, AlertTriangle } from 'lucide-react';
+import ResumeUpload from './ResumeUpload';
 
 export default function ProfileSettings({ onBack, isDarkMode }) {
   const [profile, setProfile] = useState({
@@ -25,6 +26,9 @@ export default function ProfileSettings({ onBack, isDarkMode }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteText, setDeleteText] = useState('');
   const [deleting, setDeleting] = useState(false);
+
+  // Resume upload
+  const [showResumeUpload, setShowResumeUpload] = useState(false);
 
   const dark = isDarkMode;
 
@@ -345,6 +349,48 @@ export default function ProfileSettings({ onBack, isDarkMode }) {
             }} /> : <><Save size={15} /> Save Profile</>}
           </button>
         </form>
+
+        {/* ── Resume Upload ────────────────────────────────────────────────── */}
+        <div style={{ ...sectionStyle, marginTop: '2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, margin: 0 }}>Resume Analysis</h3>
+            <button
+              onClick={() => setShowResumeUpload(v => !v)}
+              style={{
+                padding: '0.35rem 0.9rem',
+                background: accent,
+                color: '#fff',
+                border: 'none',
+                borderRadius: '7px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              {showResumeUpload ? 'Hide' : 'Upload Resume'}
+            </button>
+          </div>
+          <p style={{ fontSize: '0.8rem', color: secondaryText, marginBottom: '0.75rem' }}>
+            Upload your PDF resume to auto-extract skills, experience, and get personalised career matches.
+          </p>
+          {showResumeUpload && (
+            <ResumeUpload
+              onAnalysisComplete={(analysis) => {
+                if (analysis.skills?.length) {
+                  setProfile(p => ({ ...p, skills: analysis.skills }));
+                  setSkillsInput(analysis.skills.join(', '));
+                }
+                if (analysis.experience_level) {
+                  setProfile(p => ({ ...p, experience_level: analysis.experience_level }));
+                }
+                if (analysis.career_interests_inferred?.length) {
+                  setProfile(p => ({ ...p, career_interests: analysis.career_interests_inferred }));
+                  setInterestsInput(analysis.career_interests_inferred.join(', '));
+                }
+              }}
+            />
+          )}
+        </div>
 
         {/* ── Danger zone: Delete Account ──────────────────────────────────── */}
         <div style={{
