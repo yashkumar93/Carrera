@@ -500,9 +500,7 @@ const MainContent = styled.div`
   min-width: 0;
   margin-left: ${props => props.$sidebarExpanded ? '260px' : '60px'};
   transition: margin-left 0.2s ease;
-  background:
-    radial-gradient(circle at top left, ${props => props.theme.accentSoft}, transparent 28%),
-    linear-gradient(180deg, ${props => props.theme.background} 0%, ${props => props.theme.secondaryBackground} 100%);
+  background: ${props => props.theme.background};
   
   @media (max-width: 768px) {
     margin-left: 0;
@@ -791,14 +789,14 @@ const MessageBubble = styled.div`
     font-size: ${props => props.$isUser ? '0.98rem' : '1.05rem'};
     line-height: ${props => props.$isUser ? '1.65' : '1.72'};
     box-shadow: none;
-    font-family: ${props => props.$isUser ? 'inherit' : 'Georgia, Cambria, "Times New Roman", Times, serif'};
+    font-family: inherit;
     
     h1, h2, h3, h4, h5, h6 {
       margin: 0 0 1rem 0;
       font-weight: 600;
       line-height: 1.28;
       color: #fff7ef;
-      font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+      font-family: inherit;
     }
     
     h1 { font-size: 1.9rem; }
@@ -912,7 +910,13 @@ const InputSection = styled.div`
   bottom: 0;
   padding: 0 1rem 1rem;
   border-top: none;
-  background: linear-gradient(180deg, rgba(23, 20, 18, 0) 0%, rgba(23, 20, 18, 0.92) 22%, rgba(23, 20, 18, 0.98) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(23, 20, 18, 0) 0%,
+    rgba(23, 20, 18, 0.84) 24%,
+    rgba(23, 20, 18, 0.94) 60%,
+    rgba(23, 20, 18, 1) 100%
+  );
   
   .input-container {
     max-width: 100%;
@@ -1001,15 +1005,6 @@ const ComposerCard = styled.div`
   background: rgba(49, 45, 40, 0.92);
   border: 1px solid rgba(255, 252, 247, 0.12);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
-`;
-
-const ComposerDisclaimer = styled.div`
-  max-width: 100%;
-  margin: 0 auto 0.6rem;
-  text-align: center;
-  font-size: 0.72rem;
-  color: #8d7d72;
-  line-height: 1.45;
 `;
 
 const ComposerFooter = styled.div`
@@ -1790,9 +1785,6 @@ Let's start by understanding your current situation. What brings you here today?
               </MessagesArea>
 
               <InputSection>
-                <ComposerDisclaimer>
-                  AI career guidance is for informational purposes only and does not replace professional counseling. Salary estimates reflect general market data.
-                </ComposerDisclaimer>
                 <ComposerCard>
                   <div className="input-container">
                     <MessageInput
