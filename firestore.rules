@@ -121,6 +121,17 @@ service cloud.firestore {
       match /assessments/{assessmentId} {
         allow read, write: if isOwner(userId) || isAdmin();
       }
+
+      // Learning roadmap subcollection (Phase 2)
+      match /roadmap/{itemId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    // Labor market cache (backend-managed, no client write)
+    match /lm_cache/{cacheKey} {
+      allow read: if isAuthenticated();
+      allow write: if false;  // backend-only via Admin SDK
     }
   }
 }

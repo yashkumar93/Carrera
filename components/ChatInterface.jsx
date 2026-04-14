@@ -4,21 +4,14 @@ import { useState, useEffect, useRef } from 'react';
 import styled, { createGlobalStyle, ThemeProvider } from 'styled-components';
 import ReactMarkdown from 'react-markdown';
 import apiService from '../lib/api';
-import { signInWithGoogle, signOutUser, onAuthChange, createSession, addMessageToSession, getUserSessions, getSession } from '../lib/firebase';
+import { signInWithGoogle, signOutUser, onAuthChange } from '../lib/firebase';
 import ClaudeChatInput from './ui/claude-chat-input';
-import { Menu, PanelLeftClose, Plus, MoreHorizontal, Pencil, Trash2, ArrowUp, LogOut, User, ThumbsUp, ThumbsDown, Settings } from 'lucide-react';
+import { Menu, PanelLeftClose, Trash2, ArrowUp, LogOut, User, ThumbsUp, ThumbsDown, Settings, Sparkles, Moon, Sun, Download, Compass, ChevronDown } from 'lucide-react';
 import ProfileSettings from './ProfileSettings';
+import RichResponseRenderer from './rich/RichResponseRenderer';
 import AptitudeAssessment from './AptitudeAssessment';
+import CareerComparison from './CareerComparison';
 import LanguageSwitcher from './LanguageSwitcher';
-import {
-  ChatSuggestion,
-  ChatSuggestions,
-  ChatSuggestionsContent,
-  ChatSuggestionsDescription,
-  ChatSuggestionsHeader,
-  ChatSuggestionsTitle,
-} from '@/components/ui/chat-suggestions';
-
 // Global styles for dark mode
 const GlobalStyle = createGlobalStyle`
   * {
@@ -54,49 +47,53 @@ const GlobalStyle = createGlobalStyle`
 
 // Theme configurations
 const lightTheme = {
-  background: '#ffffff',
-  secondaryBackground: '#f9f9f9',
-  cardBackground: '#ffffff',
-  userMessageBackground: '#f4f4f4',
-  botMessageBackground: 'transparent',
-  text: '#2f2f2f',
-  secondaryText: '#6b6b6b',
-  border: '#e5e5e5',
-  userMessageText: '#2f2f2f',
-  botMessageText: '#2f2f2f',
-  buttonBackground: '#2f2f2f',
-  buttonHover: '#1a1a1a',
-  inputBackground: '#ffffff',
-  inputBorder: '#d1d1d1',
-  headerBackground: '#ffffff',
-  scrollTrack: '#f4f4f4',
-  scrollThumb: '#d1d1d1',
-  scrollThumbHover: '#b0b0b0',
-  shadowLight: '0 1px 2px rgba(0, 0, 0, 0.05)',
-  shadowMedium: '0 2px 4px rgba(0, 0, 0, 0.08)',
+  background: '#f5efe6',
+  secondaryBackground: '#efe6da',
+  cardBackground: 'rgba(255, 252, 247, 0.84)',
+  userMessageBackground: 'linear-gradient(135deg, #2f241d 0%, #4c372a 100%)',
+  botMessageBackground: 'rgba(255, 250, 244, 0.92)',
+  text: '#2d241e',
+  secondaryText: '#7a675b',
+  border: 'rgba(97, 73, 58, 0.14)',
+  userMessageText: '#fffaf5',
+  botMessageText: '#2d241e',
+  buttonBackground: '#b85c38',
+  buttonHover: '#9f4d2d',
+  inputBackground: 'rgba(255, 252, 247, 0.95)',
+  inputBorder: 'rgba(120, 92, 74, 0.16)',
+  headerBackground: 'rgba(245, 239, 230, 0.84)',
+  scrollTrack: 'rgba(239, 230, 218, 0.6)',
+  scrollThumb: 'rgba(184, 92, 56, 0.4)',
+  scrollThumbHover: 'rgba(184, 92, 56, 0.6)',
+  shadowLight: '0 10px 30px rgba(77, 53, 40, 0.08)',
+  shadowMedium: '0 18px 50px rgba(77, 53, 40, 0.12)',
+  accent: '#b85c38',
+  accentSoft: 'rgba(184, 92, 56, 0.12)',
 };
 
 const darkTheme = {
-  background: '#212121',
-  secondaryBackground: '#2a2a2a',
-  cardBackground: '#212121',
-  userMessageBackground: '#2f2f2f',
-  botMessageBackground: 'transparent',
-  text: '#ececec',
-  secondaryText: '#9b9b9b',
-  border: '#3f3f3f',
-  userMessageText: '#ececec',
-  botMessageText: '#ececec',
-  buttonBackground: '#ececec',
-  buttonHover: '#ffffff',
-  inputBackground: '#2a2a2a',
-  inputBorder: '#3f3f3f',
-  headerBackground: '#212121',
-  scrollTrack: '#2a2a2a',
-  scrollThumb: '#3f3f3f',
-  scrollThumbHover: '#4f4f4f',
-  shadowLight: '0 1px 2px rgba(0, 0, 0, 0.3)',
-  shadowMedium: '0 2px 4px rgba(0, 0, 0, 0.4)',
+  background: '#171412',
+  secondaryBackground: '#221d1a',
+  cardBackground: 'rgba(31, 27, 24, 0.88)',
+  userMessageBackground: 'linear-gradient(135deg, #d9794e 0%, #b85c38 100%)',
+  botMessageBackground: 'rgba(33, 29, 26, 0.92)',
+  text: '#f4ebe4',
+  secondaryText: '#b8a79b',
+  border: 'rgba(255, 232, 217, 0.09)',
+  userMessageText: '#fff9f3',
+  botMessageText: '#f4ebe4',
+  buttonBackground: '#d9794e',
+  buttonHover: '#ea865a',
+  inputBackground: 'rgba(30, 25, 22, 0.96)',
+  inputBorder: 'rgba(255, 232, 217, 0.12)',
+  headerBackground: 'rgba(23, 20, 18, 0.78)',
+  scrollTrack: 'rgba(34, 29, 26, 0.8)',
+  scrollThumb: 'rgba(217, 121, 78, 0.34)',
+  scrollThumbHover: 'rgba(217, 121, 78, 0.5)',
+  shadowLight: '0 12px 32px rgba(0, 0, 0, 0.26)',
+  shadowMedium: '0 24px 60px rgba(0, 0, 0, 0.34)',
+  accent: '#d9794e',
+  accentSoft: 'rgba(217, 121, 78, 0.14)',
 };
 
 // Styled components
@@ -503,6 +500,9 @@ const MainContent = styled.div`
   min-width: 0;
   margin-left: ${props => props.$sidebarExpanded ? '260px' : '60px'};
   transition: margin-left 0.2s ease;
+  background:
+    radial-gradient(circle at top left, ${props => props.theme.accentSoft}, transparent 28%),
+    linear-gradient(180deg, ${props => props.theme.background} 0%, ${props => props.theme.secondaryBackground} 100%);
   
   @media (max-width: 768px) {
     margin-left: 0;
@@ -512,28 +512,54 @@ const MainContent = styled.div`
 const Header = styled.header`
   background: ${props => props.theme.headerBackground};
   color: ${props => props.theme.text};
-  padding: 0.875rem 1.5rem;
-  border-bottom: 1px solid ${props => props.theme.border};
+  padding: ${props => props.$minimal ? '0.6rem 1.2rem' : '1rem 1.5rem'};
+  border-bottom: ${props => props.$minimal ? 'none' : `1px solid ${props.theme.border}`};
   display: flex;
   justify-content: space-between;
   align-items: center;
+  backdrop-filter: ${props => props.$minimal ? 'none' : 'blur(18px)'};
+  position: sticky;
+  top: 0;
+  z-index: 40;
+`;
+
+const HeaderCopy = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+const HeaderEyebrow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: ${props => props.theme.accent};
 `;
 
 const Title = styled.h1`
-  font-size: 1rem;
-  font-weight: 500;
+  font-size: 1.15rem;
+  font-weight: 700;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   color: ${props => props.theme.text};
 `;
 
+const HeaderSubtext = styled.p`
+  font-size: 0.82rem;
+  color: ${props => props.theme.secondaryText};
+`;
+
 const ThemeToggle = styled.button`
   background: transparent;
   border: 1px solid ${props => props.theme.border};
   color: ${props => props.theme.text};
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
+  padding: 0.5rem 0.8rem;
+  border-radius: 999px;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -543,6 +569,7 @@ const ThemeToggle = styled.button`
 
   &:hover {
     background: ${props => props.theme.secondaryBackground};
+    border-color: ${props => props.theme.accent};
   }
 `;
 
@@ -550,6 +577,10 @@ const HeaderRight = styled.div`
   display: flex;
   align-items: center;
   gap: 0.75rem;
+
+  @media (max-width: 640px) {
+    gap: 0.5rem;
+  }
 `;
 
 const ProfileContainer = styled.div`
@@ -685,61 +716,98 @@ const ChatContainer = styled.main`
   flex: 1;
   display: flex;
   flex-direction: column;
-  max-width: 768px;
+  max-width: 1120px;
   margin: 0 auto;
   width: 100%;
   position: relative;
+  padding: 0.35rem 1rem 1rem;
+
+  @media (max-width: 768px) {
+    padding: 0.75rem 0.75rem 0.9rem;
+  }
 `;
 
-const StageIndicator = styled.div`
-  background: ${props => props.theme.secondaryBackground};
-  color: ${props => props.theme.secondaryText};
-  padding: 0.75rem 1.5rem;
-  text-align: center;
-  font-size: 0.875rem;
-  font-weight: 500;
-  border-bottom: 1px solid ${props => props.theme.border};
-  letter-spacing: 0.025em;
+const ChatFrame = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
 `;
 
 const MessagesArea = styled.div`
   flex: 1;
   overflow-y: auto;
-  padding: 2rem 1.5rem;
+  padding: 1rem 1rem 10.5rem;
   display: flex;
   flex-direction: column;
   gap: 2rem;
   scroll-behavior: smooth;
+  background: transparent;
+
+  @media (max-width: 640px) {
+    padding: 0.75rem 0.5rem 9.5rem;
+  }
 `;
 
 const MessageBubble = styled.div`
-  width: 100%;
+  width: min(100%, 860px);
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: ${props => props.$isUser ? 'flex-end' : 'flex-start'};
+  gap: 0.45rem;
+
+  @media (max-width: 640px) {
+    gap: 0.35rem;
+  }
+
+  .message-shell {
+    width: 100%;
+    max-width: ${props => props.$isUser ? 'min(72%, 680px)' : '100%'};
+    display: flex;
+    flex-direction: column;
+    align-items: ${props => props.$isUser ? 'flex-end' : 'flex-start'};
+
+    @media (max-width: 640px) {
+      max-width: ${props => props.$isUser ? '90%' : '100%'};
+    }
+  }
+
+  .message-avatar {
+    display: none;
+  }
   
   .message-content {
-    background: ${props => props.$isUser ? props.theme.userMessageBackground : props.theme.botMessageBackground};
-    color: ${props => props.$isUser ? props.theme.userMessageText : props.theme.botMessageText};
-    padding: ${props => props.$isUser ? '0.875rem 1rem' : '0'};
-    border-radius: ${props => props.$isUser ? '1.125rem' : '0'};
-    max-width: ${props => props.$isUser ? '85%' : '100%'};
-    font-size: 1rem;
-    line-height: 1.6;
+    background: ${props => props.$isUser ? 'rgba(255, 252, 247, 0.07)' : 'transparent'};
+    color: ${props => props.$isUser ? '#f4ebe4' : '#f6ede5'};
+    padding: ${props => props.$isUser ? '0.9rem 1rem' : '0'};
+    border: 1px solid ${props => props.$isUser ? 'rgba(255, 252, 247, 0.08)' : 'transparent'};
+    border-radius: ${props => props.$isUser ? '1.2rem' : '0'};
+    max-width: 100%;
+    font-size: ${props => props.$isUser ? '0.98rem' : '1.05rem'};
+    line-height: ${props => props.$isUser ? '1.65' : '1.72'};
+    box-shadow: none;
+    font-family: ${props => props.$isUser ? 'inherit' : 'Georgia, Cambria, "Times New Roman", Times, serif'};
     
     h1, h2, h3, h4, h5, h6 {
-      margin: 0 0 0.875rem 0;
+      margin: 0 0 1rem 0;
       font-weight: 600;
-      line-height: 1.3;
+      line-height: 1.28;
+      color: #fff7ef;
+      font-family: Georgia, Cambria, "Times New Roman", Times, serif;
     }
     
-    h1 { font-size: 1.5rem; }
-    h2 { font-size: 1.25rem; }
-    h3 { font-size: 1.125rem; }
+    h1 { font-size: 1.9rem; }
+    h2 { font-size: 1.45rem; }
+    h3 { font-size: 1.2rem; }
     
     p {
-      margin: 0 0 0.875rem 0;
-      line-height: 1.6;
+      margin: 0 0 1rem 0;
+      line-height: ${props => props.$isUser ? '1.65' : '1.72'};
       
       &:last-child {
         margin-bottom: 0;
@@ -747,17 +815,17 @@ const MessageBubble = styled.div`
     }
     
     ul, ol {
-      margin: 0 0 0.875rem 0;
+      margin: 0 0 1rem 0;
       padding-left: 1.5rem;
       
       li {
-        margin-bottom: 0.375rem;
-        line-height: 1.6;
+        margin-bottom: 0.55rem;
+        line-height: 1.72;
       }
     }
     
     code {
-      background: ${props => props.theme.secondaryBackground};
+      background: rgba(255, 252, 247, 0.08);
       padding: 0.125rem 0.375rem;
       border-radius: 4px;
       font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
@@ -765,11 +833,12 @@ const MessageBubble = styled.div`
     }
     
     pre {
-      background: ${props => props.theme.secondaryBackground};
-      padding: 1rem;
-      border-radius: 8px;
+      background: rgba(255, 252, 247, 0.04);
+      border: 1px solid rgba(255, 252, 247, 0.08);
+      padding: 1rem 1.1rem;
+      border-radius: 14px;
       overflow-x: auto;
-      margin: 0.875rem 0;
+      margin: 1rem 0;
       
       code {
         background: none;
@@ -783,26 +852,30 @@ const MessageBubble = styled.div`
   }
   
   .timestamp {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: ${props => props.theme.secondaryText};
-    margin-top: 0.375rem;
-    padding: ${props => props.$isUser ? '0 1rem' : '0'};
+    margin-top: 0.1rem;
+    padding: 0;
+    display: ${props => props.$isUser ? 'block' : 'none'};
   }
 `;
 
 const TypingIndicator = styled.div`
-  max-width: 75%;
-  align-self: flex-start;
+  width: min(100%, 860px);
+  margin: 0 auto;
+  align-self: center;
   
   .typing-content {
-    background: ${props => props.theme.botMessageBackground};
-    color: ${props => props.theme.botMessageText};
-    padding: 1rem 1.25rem;
-    border-radius: 1.25rem 1.25rem 1.25rem 0.25rem;
+    background: transparent;
+    color: #bca999;
+    padding: 0;
+    border-radius: 0;
+    border: none;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    box-shadow: ${props => props.theme.shadowMedium};
+    gap: 0.6rem;
+    box-shadow: none;
+    font-size: 0.94rem;
     
     .dots {
       display: flex;
@@ -835,12 +908,14 @@ const TypingIndicator = styled.div`
 `;
 
 const InputSection = styled.div`
-  padding: 1.25rem 1.5rem;
-  border-top: 1px solid ${props => props.theme.border};
-  background: ${props => props.theme.background};
+  position: sticky;
+  bottom: 0;
+  padding: 0 1rem 1rem;
+  border-top: none;
+  background: linear-gradient(180deg, rgba(23, 20, 18, 0) 0%, rgba(23, 20, 18, 0.92) 22%, rgba(23, 20, 18, 0.98) 100%);
   
   .input-container {
-    max-width: 768px;
+    max-width: 100%;
     margin: 0 auto;
     display: flex;
     gap: 0.625rem;
@@ -850,13 +925,13 @@ const InputSection = styled.div`
 
 const MessageInput = styled.textarea`
   flex: 1;
-  background: ${props => props.theme.inputBackground};
-  border: 1px solid ${props => props.theme.inputBorder};
-  color: ${props => props.theme.text};
-  padding: 0.875rem 1rem;
-  border-radius: 1.5rem;
+  background: transparent;
+  border: none;
+  color: #f4ebe4;
+  padding: 0.7rem 0.35rem 0.7rem 0;
+  border-radius: 1.4rem;
   resize: none;
-  min-height: 52px;
+  min-height: 54px;
   max-height: 200px;
   font-family: inherit;
   font-size: 1rem;
@@ -865,7 +940,6 @@ const MessageInput = styled.textarea`
   
   &:focus {
     outline: none;
-    border-color: ${props => props.theme.border};
   }
   
   &::placeholder {
@@ -874,22 +948,23 @@ const MessageInput = styled.textarea`
 `;
 
 const SendButton = styled.button`
-  background: ${props => props.theme.buttonBackground};
-  color: ${props => props.theme.background};
+  background: transparent;
+  color: #f3e7db;
   border: none;
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 999px;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: none;
   
   &:hover:not(:disabled) {
-    background: ${props => props.theme.buttonHover};
-    transform: scale(1.05);
+    background: rgba(255, 252, 247, 0.08);
+    transform: translateY(-1px);
   }
   
   &:disabled {
@@ -897,6 +972,128 @@ const SendButton = styled.button`
     cursor: not-allowed;
   }
 `;
+
+const StagePill = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  align-self: center;
+  margin: 0 0 1rem 0;
+  padding: 0.25rem 0;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #9f8b7d;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+
+  @media (max-width: 640px) {
+    margin: 0 0 0.8rem 0;
+  }
+`;
+
+const ComposerCard = styled.div`
+  max-width: 944px;
+  margin: 0 auto;
+  padding: 0.9rem 1.1rem 0.8rem;
+  border-radius: 1.75rem;
+  background: rgba(49, 45, 40, 0.92);
+  border: 1px solid rgba(255, 252, 247, 0.12);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+`;
+
+const ComposerDisclaimer = styled.div`
+  max-width: 100%;
+  margin: 0 auto 0.6rem;
+  text-align: center;
+  font-size: 0.72rem;
+  color: #8d7d72;
+  line-height: 1.45;
+`;
+
+const ComposerFooter = styled.div`
+  margin-top: 0.55rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 0.2rem;
+  font-size: 0.72rem;
+  color: #b8a79b;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+`;
+
+const HelperPill = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 999px;
+  background: transparent;
+  border: none;
+`;
+
+const FeedbackBar = styled.div`
+  display: none;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+  align-items: center;
+`;
+
+const FeedbackButton = styled.button`
+  background: ${props => props.$active ? props.$activeColorBg : 'transparent'};
+  border: 1px solid ${props => props.$active ? props.$activeColor : props.theme.border};
+  border-radius: 999px;
+  padding: 0.32rem 0.58rem;
+  cursor: ${props => props.$disabled ? 'default' : 'pointer'};
+  color: ${props => props.$active ? props.$activeColor : props.theme.secondaryText};
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  transition: all 0.15s ease;
+  pointer-events: ${props => props.$disabled ? 'none' : 'auto'};
+`;
+
+const JumpToLatestButton = styled.button`
+  position: sticky;
+  bottom: 0.75rem;
+  align-self: center;
+  margin-left: auto;
+  margin-right: auto;
+  background: rgba(49, 45, 40, 0.94);
+  color: #fff8f3;
+  border: none;
+  border-radius: 999px;
+  padding: 0.52rem 0.95rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: ${props => props.theme.shadowMedium};
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+`;
+
+// Placeholder text rotates based on the current counseling stage.
+const STAGE_PLACEHOLDERS = {
+  discovery:   'Tell me about your interests, education, or career goals...',
+  assessment:  'Share your skills, strengths, or what you want to improve...',
+  exploration: 'Ask about any career, compare paths, or explore options...',
+  roadmap:     'Ask about courses, certifications, or next steps...',
+};
 
 const ChatInterface = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -915,10 +1112,6 @@ const ChatInterface = () => {
   // Sidebar state
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [sessions, setSessions] = useState([]);
-  const [currentSessionId, setCurrentSessionId] = useState(null);
-  const [activeMenuId, setActiveMenuId] = useState(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   // New chat view state
   const [showNewChatView, setShowNewChatView] = useState(true);
@@ -932,9 +1125,19 @@ const ChatInterface = () => {
   // Aptitude assessment modal
   const [showAssessment, setShowAssessment] = useState(false);
 
+  // Career comparison modal
+  const [showComparison, setShowComparison] = useState(false);
+
+  // PDF export state
+  const [exportingPdf, setExportingPdf] = useState(false);
+
   const messagesEndRef = useRef(null);
+  const messagesAreaRef = useRef(null);
   const inputRef = useRef(null);
   const profileDropdownRef = useRef(null);
+
+  // Jump-to-latest pill: only show when user has scrolled up meaningfully
+  const [isNearBottom, setIsNearBottom] = useState(true);
 
   // Initialize dark mode from localStorage after mount
   useEffect(() => {
@@ -977,8 +1180,11 @@ Let's start by understanding your current situation. What brings you here today?
   }, []);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    // Only auto-scroll when the user is already at the bottom. If they've scrolled up
+    // to read history, leave their scroll position alone — the "Jump to latest" pill
+    // will appear instead.
+    if (isNearBottom) scrollToBottom();
+  }, [messages, isNearBottom]);
 
   useEffect(() => {
     // Auto-resize textarea
@@ -988,7 +1194,7 @@ Let's start by understanding your current situation. What brings you here today?
     }
   }, [inputValue]);
 
-  // Auth state listener
+  // Auth state listener — load single persistent chat history
   useEffect(() => {
     const unsubscribe = onAuthChange(async (firebaseUser) => {
       if (firebaseUser) {
@@ -999,16 +1205,62 @@ Let's start by understanding your current situation. What brings you here today?
           photoURL: firebaseUser.photoURL
         });
 
-        // Fetch user's sessions from Firestore
+        // Load persistent chat history for this user
         try {
-          const userSessions = await getUserSessions(firebaseUser.uid);
-          setSessions(userSessions);
+          const history = await apiService.getChatHistory();
+          if (history.messages && history.messages.length > 0) {
+            const historicalMessages = history.messages.map((msg, i) => ({
+              id: msg.id || `hist-${i}`,
+              content: msg.content,
+              isUser: msg.isUser,
+              timestamp: msg.createdAt ? new Date(msg.createdAt).getTime() : Date.now(),
+            }));
+
+            // Returning user: try to synthesise a ProgressCheckIn card from their roadmap.
+            // If they have any roadmap items, prepend it as the first "system card" message.
+            let leadingCard = null;
+            try {
+              const roadmap = await apiService.getRoadmap();
+              if (roadmap && (roadmap.total || 0) > 0) {
+                const completedCount = (roadmap.completed || []).length;
+                const currentItem = (roadmap.in_progress || [])[0];
+                const nextItem = (roadmap.todo || [])[0];
+                const lastMsgTs = historicalMessages[historicalMessages.length - 1]?.timestamp;
+                const daysSince = lastMsgTs
+                  ? Math.max(0, Math.floor((Date.now() - lastMsgTs) / 86400000))
+                  : null;
+
+                leadingCard = {
+                  id: 'progress-checkin',
+                  isUser: false,
+                  content: '',
+                  timestamp: Date.now(),
+                  richComponent: {
+                    type: 'progress_checkin',
+                    data: {
+                      userName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'there',
+                      completionPercent: roadmap.completion_pct || 0,
+                      completedModules: completedCount,
+                      currentModule: currentItem?.title || null,
+                      nextModule: nextItem?.title || null,
+                      lastVisitDays: daysSince,
+                    },
+                  },
+                };
+              }
+            } catch (e) {
+              // Roadmap unavailable — no check-in card. Not a fatal error.
+            }
+
+            setMessages(leadingCard ? [leadingCard, ...historicalMessages] : historicalMessages);
+            setCurrentStage(history.stage || 'discovery');
+            setShowNewChatView(false);
+          }
         } catch (error) {
-          console.error('Error fetching sessions:', error);
+          console.error('Error loading chat history:', error);
         }
       } else {
         setUser(null);
-        setSessions([]);
       }
       setAuthLoading(false);
     });
@@ -1028,8 +1280,17 @@ Let's start by understanding your current situation. What brings you here today?
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (behavior = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  };
+
+  // Track whether the user is near the bottom of the message list.
+  // Auto-scroll only fires when they are (so scrolling up to read history isn't interrupted).
+  const handleMessagesScroll = () => {
+    const el = messagesAreaRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setIsNearBottom(distanceFromBottom < 120);
   };
 
   const toggleTheme = () => {
@@ -1086,16 +1347,11 @@ Let's start by understanding your current situation. What brings you here today?
     setMessages(prev => [...prev, botMessage]);
 
     try {
-      // Save user message to Firestore
-      if (user && currentSessionId) {
-        await addMessageToSession(currentSessionId, { content: message, isUser: true });
-      }
-
       let fullResponse = '';
 
       await apiService.streamMessage(
         message,
-        sessionId,
+        null,
         currentStage,
         (token) => {
           fullResponse += token;
@@ -1103,19 +1359,24 @@ Let's start by understanding your current situation. What brings you here today?
             msg.id === botMessageId ? { ...msg, content: fullResponse } : msg
           ));
         },
-        async (data) => { // onComplete
-          const { session_id, stage, suggestions } = data;
-          setSessionId(session_id);
-          setCurrentStage(stage);
+        (data) => { // onComplete
+          const { stage, suggestions, rich_component, clean_text } = data;
+          if (stage) setCurrentStage(stage);
           setSuggestions(suggestions || []);
-
-          // Save AI message to Firestore
-          if (user && currentSessionId) {
-            await addMessageToSession(currentSessionId, { content: fullResponse, isUser: false });
-          }
+          // Replace bot message content with the server-cleaned text (META stripped)
+          // and attach any rich component the AI returned.
+          setMessages(prev => prev.map(msg =>
+            msg.id === botMessageId
+              ? {
+                  ...msg,
+                  content: typeof clean_text === 'string' ? clean_text : msg.content,
+                  richComponent: rich_component || null,
+                }
+              : msg
+          ));
         },
-        (error) => { // onError
-          throw error; // Re-throw to be caught by catch block
+        (error) => {
+          throw error;
         }
       );
 
@@ -1136,7 +1397,7 @@ Let's start by understanding your current situation. What brings you here today?
   // Handle clicking on a session in sidebar
   const handleSessionClick = async (session) => {
     setShowNewChatView(false);
-    setCurrentSessionId(session.id);
+    setSessionId(session.id);
     setMobileSidebarOpen(false);
 
     // Load messages from the session
@@ -1170,142 +1431,49 @@ Let's start by understanding your current situation. What brings you here today?
     return stageMap[stage] || 'Career Counseling Session';
   };
 
-  const handleNewChat = () => {
-    setShowNewChatView(true);
-    setMessages([]);
-    setSessionId(null);
-    setCurrentSessionId(null);
-    setCurrentStage('discovery');
-    setSuggestions([]);
+  const handleClearChat = async () => {
+    if (!confirm('Clear all chat history and memory? This cannot be undone.')) return;
+    try {
+      await apiService.clearChatHistory();
+      setMessages([]);
+      setCurrentStage('discovery');
+      setSuggestions([]);
+      setShowNewChatView(true);
+    } catch (e) {
+      console.error('Failed to clear chat:', e);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (exportingPdf) return;
+    setExportingPdf(true);
+    try {
+      await apiService.exportSessionPdf('history', 'career-plan.pdf');
+    } catch (e) {
+      console.error('PDF export failed:', e);
+    } finally {
+      setExportingPdf(false);
+    }
   };
 
   const handleFeedback = async (messageId, messageContent, rating) => {
-    // Optimistic update
+    // Optimistic UI update. Backend feedback endpoint still expects sessionId
+    // (legacy) — will be rewired to per-message feedback in a follow-up.
     setMessageFeedback(prev => ({ ...prev, [messageId]: rating }));
-    // Persist to backend (non-blocking — failure is silent)
-    if (sessionId) {
-      apiService.submitFeedback(sessionId, rating, messageContent?.slice(0, 300) || null);
-    }
   };
 
-  // Handler for when user sends message from Claude input
-  const handleClaudeInputSend = async ({ message, files, pastedContent }) => {
+  // Handler for when user sends message from Claude input (landing view)
+  const handleClaudeInputSend = async ({ message }) => {
     setShowNewChatView(false);
-
-    // Add user message immediately
-    const userMessage = {
-      id: Date.now(),
-      content: message,
-      isUser: true,
-      timestamp: Date.now()
-    };
-    setMessages([userMessage]);
-    setInputValue('');
-    setIsLoading(true);
-
-    try {
-      // Create a new session in Firestore if user is logged in
-      let firestoreSessionId = currentSessionId;
-      if (user && !currentSessionId) {
-        firestoreSessionId = await createSession(user.uid, message);
-        setCurrentSessionId(firestoreSessionId);
-
-        // Refresh sessions list
-        const userSessions = await getUserSessions(user.uid);
-        setSessions(userSessions);
-      }
-
-      const response = await apiService.sendMessage(message, sessionId, currentStage);
-
-      if (response.session_id) {
-        setSessionId(response.session_id);
-      }
-      if (response.stage) {
-        setCurrentStage(response.stage);
-      }
-
-      const aiMessage = {
-        id: Date.now() + 1,
-        content: response.response || response.message || "I'm here to help with your career journey!",
-        isUser: false,
-        timestamp: Date.now()
-      };
-      setMessages(prev => [...prev, aiMessage]);
-
-      // Save AI response to Firestore
-      if (user && firestoreSessionId) {
-        await addMessageToSession(firestoreSessionId, { content: aiMessage.content, isUser: false });
-      }
-
-      if (response.suggestions) {
-        setSuggestions(response.suggestions);
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-      const errorMessage = {
-        id: Date.now() + 1,
-        content: "I apologize, but I encountered an error. Please try again.",
-        isUser: false,
-        timestamp: Date.now()
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
+    await handleSendMessage(message);
   };
 
-  const handleDeleteSession = (e, sessionId) => {
-    e.stopPropagation();
-    setActiveMenuId(null);
-    setDeleteConfirmId(sessionId);
-  };
-
-  const confirmDelete = async () => {
-    const sessionId = deleteConfirmId;
-    setDeleteConfirmId(null);
-    if (!sessionId) return;
-
-    try {
-      setSessions(prev => prev.filter(s => s.id !== sessionId));
-      if (sessionId === currentSessionId) {
-        handleNewChat();
-      }
-      await apiService.deleteSession(sessionId);
-    } catch (error) {
-      console.error('Failed to delete session:', error);
-    }
-  };
-
-  const handleRenameSession = async (e, sessionId) => {
-    e.stopPropagation();
-    setActiveMenuId(null);
-    const session = sessions.find(s => s.id === sessionId);
-    const newTitle = prompt('Rename chat:', session?.title || 'Untitled Session');
-    if (!newTitle || newTitle.trim() === '') return;
-
-    try {
-      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, title: newTitle.trim() } : s));
-      await apiService.client.patch(`/api/session/${sessionId}`, { title: newTitle.trim() });
-    } catch (error) {
-      console.error('Failed to rename session:', error);
-    }
-  };
-
-  const toggleSessionMenu = (e, sessionId) => {
-    e.stopPropagation();
-    setActiveMenuId(prev => prev === sessionId ? null : sessionId);
-  };
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => setActiveMenuId(null);
-    if (activeMenuId) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
-  }, [activeMenuId]);
 
   const toggleSidebar = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      setMobileSidebarOpen(prev => !prev);
+      return;
+    }
     setSidebarExpanded(!sidebarExpanded);
   };
 
@@ -1328,80 +1496,35 @@ Let's start by understanding your current situation. What brings you here today?
     <ThemeProvider theme={theme}>
       <GlobalStyle />
       {showAssessment && <AptitudeAssessment onClose={() => setShowAssessment(false)} />}
+      {showComparison && <CareerComparison onClose={() => setShowComparison(false)} />}
       <AppContainer>
         {/* Mobile Overlay */}
         <SidebarOverlay $isOpen={mobileSidebarOpen} onClick={() => setMobileSidebarOpen(false)} />
 
         {/* Sidebar */}
-        <Sidebar $isExpanded={sidebarExpanded}>
+        <Sidebar $isExpanded={sidebarExpanded || mobileSidebarOpen}>
           {/* Header with toggle */}
-          <SidebarHeader $isExpanded={sidebarExpanded}>
-            <SidebarToggleBtn onClick={toggleSidebar} title={sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}>
-              {sidebarExpanded ? <PanelLeftClose size={18} /> : <Menu size={18} />}
+          <SidebarHeader $isExpanded={sidebarExpanded || mobileSidebarOpen}>
+            <SidebarToggleBtn onClick={toggleSidebar} title={sidebarExpanded || mobileSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}>
+              {sidebarExpanded || mobileSidebarOpen ? <PanelLeftClose size={18} /> : <Menu size={18} />}
             </SidebarToggleBtn>
           </SidebarHeader>
 
           {/* Navigation */}
           <SidebarNav>
-            <NewChatBtn $isExpanded={sidebarExpanded} onClick={handleNewChat} title="New chat">
-              <span className="nav-icon"><Plus size={16} /></span>
-              <span className="nav-label">New chat</span>
-            </NewChatBtn>
-
-
-          </SidebarNav>
-
-          {/* Recents */}
-          <RecentsSection $isExpanded={sidebarExpanded}>
-            <RecentsLabel>Recents</RecentsLabel>
-            {sessions.length > 0 ? (
-              sessions.map((session) => (
-                <SessionItemContainer key={session.id}>
-                  <SessionItem
-                    $isActive={session.id === currentSessionId}
-                    onClick={() => handleSessionClick(session)}
-                    title={session.title || 'Untitled Session'}
-                  >
-                    {session.title || 'Untitled Session'}
-                  </SessionItem>
-                  <MenuTrigger
-                    className="menu-trigger"
-                    onClick={(e) => toggleSessionMenu(e, session.id)}
-                    title="More options"
-                    style={activeMenuId === session.id ? { opacity: 1 } : {}}
-                  >
-                    <MoreHorizontal size={15} />
-                  </MenuTrigger>
-                  {activeMenuId === session.id && (
-                    <DropdownMenu onClick={(e) => e.stopPropagation()}>
-                      <DropdownItem onClick={(e) => handleRenameSession(e, session.id)}>
-                        <span className="menu-icon"><Pencil size={14} /></span>
-                        Rename
-                      </DropdownItem>
-                      <DropdownItem $danger onClick={(e) => handleDeleteSession(e, session.id)}>
-                        <span className="menu-icon"><Trash2 size={14} /></span>
-                        Delete
-                      </DropdownItem>
-                    </DropdownMenu>
-                  )}
-                </SessionItemContainer>
-              ))
-            ) : (
-              <div style={{
-                padding: '0.5rem 0.75rem',
-                color: theme.secondaryText,
-                fontSize: '0.813rem'
-              }}>
-                No recent chats
-              </div>
+            {messages.length > 0 && (
+              <NewChatBtn $isExpanded={sidebarExpanded || mobileSidebarOpen} onClick={handleClearChat} title="Clear chat & memory">
+                <span className="nav-icon"><Trash2 size={16} /></span>
+                <span className="nav-label">Clear chat</span>
+              </NewChatBtn>
             )}
-          </RecentsSection>
+          </SidebarNav>
 
           {/* Profile Footer */}
           <SidebarFooter>
             {user ? (
               <div style={{ position: 'relative' }} ref={profileDropdownRef}>
-                <ProfileSection $isExpanded={sidebarExpanded} onClick={() => setShowProfileDropdown(!showProfileDropdown)}>
+                <ProfileSection $isExpanded={sidebarExpanded || mobileSidebarOpen} onClick={() => setShowProfileDropdown(!showProfileDropdown)}>
                   <div className="profile-avatar">
                     {user.photoURL ? (
                       <img src={user.photoURL} alt={user.displayName || 'Profile'} />
@@ -1409,15 +1532,16 @@ Let's start by understanding your current situation. What brings you here today?
                       <span>{user.displayName?.charAt(0) || <User size={16} />}</span>
                     )}
                   </div>
-                  {sidebarExpanded && (
+                  {(sidebarExpanded || mobileSidebarOpen) && (
                     <div className="profile-info">
                       <div className="profile-name">{user.displayName || 'User'}</div>
                     </div>
                   )}
+                  {(sidebarExpanded || mobileSidebarOpen) && <ChevronDown size={14} className="expand-icon" />}
                 </ProfileSection>
 
                 {/* Profile Dropdown with Logout */}
-                {showProfileDropdown && sidebarExpanded && (
+                {showProfileDropdown && (sidebarExpanded || mobileSidebarOpen) && (
                   <div style={{
                     position: 'absolute',
                     bottom: '100%',
@@ -1450,30 +1574,18 @@ Let's start by understanding your current situation. What brings you here today?
                     >
                       <Settings size={15} /> Profile Settings
                     </button>
+                    {/* Compare Careers button */}
                     <button
-                      onClick={() => { setShowAssessment(true); setShowProfileDropdown(false); }}
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        background: 'transparent',
-                        border: 'none',
-                        borderRadius: '6px',
-                        color: theme.text,
-                        fontSize: '0.875rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}
+                      onClick={() => { setShowProfileDropdown(false); setShowComparison(true); }}
+                      style={{ width: '100%', padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: '6px', color: theme.text, fontSize: '0.875rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
                       onMouseOver={(e) => e.currentTarget.style.background = theme.border}
                       onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                     >
-                      🎯 Aptitude Assessment
+                      ⚖️ Compare Careers
                     </button>
                     {[
-                      { href: '/mentors', icon: '🎓', label: 'Find a Mentor' },
-                      { href: '/community', icon: '💬', label: 'Community Forum' },
-                      { href: '/employers', icon: '🏢', label: 'Employer Partners' },
+                      { href: '/memory',     icon: '🧠', label: 'My Career Memory' },
+                      { href: '/roadmap',    icon: '🗺️', label: 'Learning Roadmap' },
                       { href: '/developers', icon: '🔑', label: 'Developer API' },
                     ].map(({ href, icon, label }) => (
                       <button
@@ -1511,7 +1623,7 @@ Let's start by understanding your current situation. What brings you here today?
                 )}
               </div>
             ) : (
-              sidebarExpanded ? (
+              sidebarExpanded || mobileSidebarOpen ? (
                 <SignInButton onClick={handleSignIn} style={{ width: '100%' }}>
                   Sign in with Google
                 </SignInButton>
@@ -1528,9 +1640,36 @@ Let's start by understanding your current situation. What brings you here today?
 
         {/* Main Content */}
         <MainContent $sidebarExpanded={sidebarExpanded}>
-          <Header>
-            <Title>AI Career Counselor</Title>
+          <Header $minimal={!showNewChatView}>
+            {showNewChatView ? (
+              <HeaderCopy>
+                <HeaderEyebrow>
+                  <Sparkles size={13} />
+                  Career Strategy Workspace
+                </HeaderEyebrow>
+                <Title>AI Career Counselor</Title>
+                <HeaderSubtext>
+                  Personalized guidance, live roadmap support, and practical next steps.
+                </HeaderSubtext>
+              </HeaderCopy>
+            ) : (
+              <div />
+            )}
             <HeaderRight>
+              {messages.length > 1 && (
+                <ThemeToggle
+                  onClick={handleExportPdf}
+                  disabled={exportingPdf}
+                  title="Export as PDF"
+                >
+                  <Download size={15} />
+                  {exportingPdf ? 'Exporting…' : 'Export PDF'}
+                </ThemeToggle>
+              )}
+              <ThemeToggle onClick={toggleTheme} title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
+                {isDarkMode ? <Sun size={15} /> : <Moon size={15} />}
+                {isDarkMode ? 'Light' : 'Dark'}
+              </ThemeToggle>
               <LanguageSwitcher />
             </HeaderRight>
           </Header>
@@ -1547,187 +1686,144 @@ Let's start by understanding your current situation. What brings you here today?
           ) : (
             /* Regular Chat View */
             <ChatContainer>
-              <MessagesArea>
-                {messages.map((message) => (
+              <StagePill>
+                <Compass size={14} />
+                {getStageDisplay(currentStage)}
+              </StagePill>
+              <ChatFrame>
+              <MessagesArea ref={messagesAreaRef} onScroll={handleMessagesScroll}>
+                {messages.map((message) => {
+                  // Strip any in-progress <<META>> tokens during streaming so
+                  // the raw delimiter never reaches the UI. On stream-complete,
+                  // the backend sends authoritative clean_text which replaces this.
+                  const displayContent = message.isUser
+                    ? message.content
+                    : (message.content || '').split('<<META>>')[0];
+                  return (
                   <MessageBubble key={message.id} $isUser={message.isUser}>
-                    <div className="message-content">
-                      {message.isUser ? (
-                        message.content
-                      ) : (
-                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                    <div className="message-avatar">
+                      {message.isUser ? <User size={16} /> : <Sparkles size={15} />}
+                    </div>
+                    <div className="message-shell">
+                      <div className="message-content">
+                        {message.isUser ? (
+                          displayContent
+                        ) : (
+                          <ReactMarkdown>{displayContent}</ReactMarkdown>
+                        )}
+                      </div>
+                      {/* Rich response component (career card / comparison / action plan) */}
+                      {!message.isUser && message.richComponent && (
+                        <RichResponseRenderer
+                          component={message.richComponent}
+                          onSuggestionClick={(text) => handleSendMessage(text)}
+                        />
                       )}
-                    </div>
-                    <div className="timestamp">
-                      {formatTime(message.timestamp)}
-                    </div>
-                    {/* Feedback buttons — only for AI messages with content */}
-                    {!message.isUser && message.content && sessionId && (
-                      <div style={{
-                        display: 'flex',
-                        gap: '0.375rem',
-                        marginTop: '0.5rem',
-                        alignItems: 'center',
-                      }}>
-                        <button
+                      <div className="timestamp">
+                        {message.isUser ? 'You • ' : ''}{formatTime(message.timestamp)}
+                      </div>
+                      {/* Feedback buttons — only for AI messages with content */}
+                      {!message.isUser && displayContent && user && (
+                        <FeedbackBar>
+                        <FeedbackButton
                           onClick={() => handleFeedback(message.id, message.content, 'thumbs_up')}
                           title="Helpful"
-                          style={{
-                            background: messageFeedback[message.id] === 'thumbs_up'
-                              ? (isDarkMode ? 'rgba(34,197,94,0.2)' : 'rgba(34,197,94,0.15)')
-                              : 'transparent',
-                            border: '1px solid',
-                            borderColor: messageFeedback[message.id] === 'thumbs_up'
-                              ? '#22c55e'
-                              : theme.border,
-                            borderRadius: '6px',
-                            padding: '0.25rem 0.5rem',
-                            cursor: messageFeedback[message.id] ? 'default' : 'pointer',
-                            color: messageFeedback[message.id] === 'thumbs_up'
-                              ? '#22c55e'
-                              : theme.secondaryText,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.25rem',
-                            fontSize: '0.75rem',
-                            transition: 'all 0.15s ease',
-                            pointerEvents: messageFeedback[message.id] ? 'none' : 'auto',
-                          }}
+                          $active={messageFeedback[message.id] === 'thumbs_up'}
+                          $activeColor="#22c55e"
+                          $activeColorBg={isDarkMode ? 'rgba(34,197,94,0.2)' : 'rgba(34,197,94,0.15)'}
+                          $disabled={Boolean(messageFeedback[message.id])}
                         >
                           <ThumbsUp size={13} />
-                        </button>
-                        <button
+                        </FeedbackButton>
+                        <FeedbackButton
                           onClick={() => handleFeedback(message.id, message.content, 'thumbs_down')}
                           title="Not helpful"
-                          style={{
-                            background: messageFeedback[message.id] === 'thumbs_down'
-                              ? (isDarkMode ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.15)')
-                              : 'transparent',
-                            border: '1px solid',
-                            borderColor: messageFeedback[message.id] === 'thumbs_down'
-                              ? '#ef4444'
-                              : theme.border,
-                            borderRadius: '6px',
-                            padding: '0.25rem 0.5rem',
-                            cursor: messageFeedback[message.id] ? 'default' : 'pointer',
-                            color: messageFeedback[message.id] === 'thumbs_down'
-                              ? '#ef4444'
-                              : theme.secondaryText,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.25rem',
-                            fontSize: '0.75rem',
-                            transition: 'all 0.15s ease',
-                            pointerEvents: messageFeedback[message.id] ? 'none' : 'auto',
-                          }}
+                          $active={messageFeedback[message.id] === 'thumbs_down'}
+                          $activeColor="#ef4444"
+                          $activeColorBg={isDarkMode ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.15)'}
+                          $disabled={Boolean(messageFeedback[message.id])}
                         >
                           <ThumbsDown size={13} />
-                        </button>
+                        </FeedbackButton>
                         {messageFeedback[message.id] && (
-                          <span style={{
-                            fontSize: '0.7rem',
-                            color: theme.secondaryText,
-                            marginLeft: '0.125rem',
-                          }}>
+                          <span style={{ fontSize: '0.7rem', color: theme.secondaryText, marginLeft: '0.125rem' }}>
                             Feedback recorded
                           </span>
                         )}
-                      </div>
-                    )}
-                  </MessageBubble>
-                ))}
-
-                {isLoading && (
-                  <TypingIndicator>
-                    <div className="typing-content">
-                      <span>Thinking</span>
-                      <div className="dots">
-                        <div className="dot"></div>
-                        <div className="dot"></div>
-                        <div className="dot"></div>
-                      </div>
+                        </FeedbackBar>
+                      )}
                     </div>
-                  </TypingIndicator>
-                )}
+                  </MessageBubble>
+                  );
+                })}
+
+                {(() => {
+                  // Pre-stream indicator: show only while the bot placeholder is still empty.
+                  // Once the first token arrives, the streaming text itself is the indicator.
+                  const last = messages[messages.length - 1];
+                  const preStream = isLoading && last && !last.isUser && !last.content;
+                  if (!preStream) return null;
+                  return (
+                    <TypingIndicator>
+                      <div className="typing-content">
+                        <span>Counselor is thinking</span>
+                        <div className="dots">
+                          <div className="dot"></div>
+                          <div className="dot"></div>
+                          <div className="dot"></div>
+                        </div>
+                      </div>
+                    </TypingIndicator>
+                  );
+                })()}
 
                 <div ref={messagesEndRef} />
+
+                {/* Jump-to-latest pill — shown when user has scrolled up */}
+                {!isNearBottom && messages.length > 2 && (
+                  <JumpToLatestButton
+                    onClick={() => { setIsNearBottom(true); scrollToBottom('smooth'); }}
+                  >
+                    ↓ Jump to latest
+                  </JumpToLatestButton>
+                )}
               </MessagesArea>
 
-              {suggestions.length > 0 && !isLoading && (
-                <div style={{ padding: '1rem 1.5rem', borderTop: `1px solid ${theme.border}`, background: theme.secondaryBackground }}>
-                  <ChatSuggestions>
-                    <ChatSuggestionsHeader>
-                      <ChatSuggestionsTitle>Try these prompts:</ChatSuggestionsTitle>
-                      <ChatSuggestionsDescription>
-                        Click a suggestion to get started
-                      </ChatSuggestionsDescription>
-                    </ChatSuggestionsHeader>
-                    <ChatSuggestionsContent>
-                      {suggestions.map((suggestion, index) => (
-                        <ChatSuggestion
-                          key={index}
-                          onClick={() => handleSendMessage(suggestion)}
-                        >
-                          {suggestion}
-                        </ChatSuggestion>
-                      ))}
-                    </ChatSuggestionsContent>
-                  </ChatSuggestions>
-                </div>
-              )}
-
               <InputSection>
-                <div style={{
-                  maxWidth: '768px',
-                  margin: '0 auto',
-                  paddingBottom: '0.375rem',
-                  textAlign: 'center',
-                  fontSize: '0.7rem',
-                  color: theme.secondaryText,
-                  lineHeight: 1.4,
-                  opacity: 0.7,
-                }}>
+                <ComposerDisclaimer>
                   AI career guidance is for informational purposes only and does not replace professional counseling. Salary estimates reflect general market data.
-                </div>
-                <div className="input-container">
-                  <MessageInput
-                    ref={inputRef}
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Type your message here... (Enter to send, Shift+Enter for new line)"
-                    disabled={isLoading}
-                    rows="1"
-                  />
-                  <SendButton
-                    onClick={() => handleSendMessage()}
-                    disabled={isLoading || !inputValue.trim()}
-                  >
-                    <ArrowUp size={16} />
-                  </SendButton>
-                </div>
+                </ComposerDisclaimer>
+                <ComposerCard>
+                  <div className="input-container">
+                    <MessageInput
+                      ref={inputRef}
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder={STAGE_PLACEHOLDERS[currentStage] || STAGE_PLACEHOLDERS.discovery}
+                      disabled={isLoading}
+                      rows="1"
+                    />
+                    <SendButton
+                      onClick={() => handleSendMessage()}
+                      disabled={isLoading || !inputValue.trim()}
+                    >
+                      <ArrowUp size={18} />
+                    </SendButton>
+                  </div>
+                  <ComposerFooter>
+                    <HelperPill>
+                      <span>+</span>
+                    </HelperPill>
+                    <span>Press Enter to send</span>
+                  </ComposerFooter>
+                </ComposerCard>
               </InputSection>
+              </ChatFrame>
             </ChatContainer>
           )}
         </MainContent>
       </AppContainer>
-
-      {/* Delete Confirmation Modal */}
-      {deleteConfirmId && (
-        <ModalOverlay onClick={() => setDeleteConfirmId(null)}>
-          <ModalCard onClick={(e) => e.stopPropagation()}>
-            <h3>Delete chat</h3>
-            <p>Are you sure you want to delete this chat?</p>
-            <ModalActions>
-              <ModalBtn $variant="cancel" onClick={() => setDeleteConfirmId(null)}>
-                Cancel
-              </ModalBtn>
-              <ModalBtn $variant="delete" onClick={confirmDelete}>
-                Delete
-              </ModalBtn>
-            </ModalActions>
-          </ModalCard>
-        </ModalOverlay>
-      )}
     </ThemeProvider>
   );
 };

@@ -754,6 +754,61 @@ def get_feedback_analytics(limit_sessions: int = 200) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Single-chat message store  (users/{uid}/messages subcollection)
+# ---------------------------------------------------------------------------
+
+def add_chat_message(user_id: str, content: str, is_user: bool, msg_id: str = None) -> str:
+    """Append one message to the user's persistent chat history. Returns doc ID."""
+    db = get_firestore_client()
+    col = db.collection("users").document(user_id).collection("messages")
+    doc_ref = col.document(msg_id) if msg_id else col.document()
+    doc_ref.set({
+        "content": content,
+        "isUser": is_user,
+        "timestamp": firestore.SERVER_TIMESTAMP,
+        "createdAt": datetime.utcnow().isoformat(),
+    })
+    return doc_ref.id
+
+
+def get_chat_history(user_id: str, limit: int = 200) -> List[Dict[str, Any]]:
+    """Return all messages for the user, oldest first."""
+    db = get_firestore_client()
+    docs = (
+        db.collection("users").document(user_id)
+        .collection("messages")
+        .order_by("timestamp", direction=firestore.Query.ASCENDING)
+        .limit(limit)
+        .stream()
+    )
+    return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+
+
+def get_recent_messages(user_id: str, limit: int = 20) -> List[Dict[str, Any]]:
+    """Return the most recent messages, oldest first (for the context window)."""
+    db = get_firestore_client()
+    docs = list(
+        db.collection("users").document(user_id)
+        .collection("messages")
+        .order_by("timestamp", direction=firestore.Query.DESCENDING)
+        .limit(limit)
+        .stream()
+    )
+    return [{"id": doc.id, **doc.to_dict()} for doc in reversed(docs)]
+
+
+def clear_chat_history(user_id: str) -> int:
+    """Delete all chat messages for a user. Returns count removed."""
+    db = get_firestore_client()
+    col = db.collection("users").document(user_id).collection("messages")
+    docs = list(col.stream())
+    for doc in docs:
+        doc.reference.delete()
+    logger.info("Cleared %d chat messages for user %s", len(docs), user_id)
+    return len(docs)
+
+
+# ---------------------------------------------------------------------------
 # Health check
 # ---------------------------------------------------------------------------
 
