@@ -3,7 +3,7 @@
 import CareerCard from './CareerCard';
 import ComparisonTable from './ComparisonTable';
 import ActionPlan from './ActionPlan';
-import ProgressCheckIn from './ProgressCheckIn';
+
 import CommunityInsight from './CommunityInsight';
 import CertificationCard from './CertificationCard';
 import ProjectIdea from './ProjectIdea';
@@ -37,8 +37,6 @@ export default function RichResponseRenderer({ component, onSuggestionClick }) {
                 if (!Array.isArray(data.weeks) || data.weeks.length === 0) return null;
                 return <ActionPlan {...data} onSuggestionClick={onSuggestionClick} />;
 
-            case 'progress_checkin':
-                return <ProgressCheckIn {...data} onSuggestionClick={onSuggestionClick} />;
 
             case 'community_insight':
                 if (!data.insight) return null;

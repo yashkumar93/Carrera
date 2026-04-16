@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import apiService from '../lib/api';
-import { ThumbsUp, ArrowUp, Sparkles, CheckCircle, User, GraduationCap, Briefcase, Target, MapPin } from 'lucide-react';
+import { ArrowUp, Sparkles, CheckCircle, User, GraduationCap, Briefcase, Target, MapPin } from 'lucide-react';
 
 // ─── Inline styles (no external deps) ────────────────────────────────────────
 
@@ -88,6 +88,8 @@ const styles = {
     marginBottom: '1rem',
     gap: '0.625rem',
     alignItems: 'flex-end',
+    animation: isUser ? 'slideInRight 0.35s ease-out' : 'slideInLeft 0.4s ease-out',
+    animationFillMode: 'both',
   }),
   avatarBot: {
     width: '32px',
@@ -101,6 +103,7 @@ const styles = {
     fontSize: '0.875rem',
     fontWeight: '700',
     color: '#fff',
+    animation: 'pulseGlow 2.5s ease-in-out infinite',
   },
   bubbleBot: {
     maxWidth: '520px',
@@ -278,11 +281,18 @@ const KEYFRAMES = `
   0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
   30% { transform: translateY(-8px); opacity: 1; }
 }
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
-.onboarding-msg { animation: fadeIn 0.3s ease; }
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
+  50% { box-shadow: 0 0 12px 2px rgba(124, 58, 237, 0.25); }
+}
 `;
 
 // ─── Profile review card ──────────────────────────────────────────────────────
@@ -361,7 +371,6 @@ export default function OnboardingChat({ onComplete }) {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState(null);
   const [userMessageCount, setUserMessageCount] = useState(0);
   const [onboardingDone, setOnboardingDone] = useState(false);
   const [profileData, setProfileData] = useState(null);
@@ -407,8 +416,7 @@ export default function OnboardingChat({ onComplete }) {
   async function triggerGreeting() {
     setIsLoading(true);
     try {
-      const data = await apiService.sendMessage('start', null, null, true);
-      if (data.session_id) setSessionId(data.session_id);
+      const data = await apiService.sendMessage('start', null, true);
       addMessage(data.response, false);
     } catch (err) {
       addMessage(
@@ -430,9 +438,7 @@ export default function OnboardingChat({ onComplete }) {
     setIsLoading(true);
 
     try {
-      const data = await apiService.sendMessage(trimmed, sessionId, null, true);
-
-      if (data.session_id) setSessionId(data.session_id);
+      const data = await apiService.sendMessage(trimmed, null, true);
 
       addMessage(data.response, false);
 

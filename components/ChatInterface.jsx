@@ -931,43 +931,7 @@ Let's start by understanding your current situation. What brings you here today?
               timestamp: msg.createdAt ? new Date(msg.createdAt).getTime() : Date.now(),
             }));
 
-            // Returning user: try to synthesise a ProgressCheckIn card from their roadmap.
-            // If they have any roadmap items, prepend it as the first "system card" message.
-            let leadingCard = null;
-            try {
-              const roadmap = await apiService.getRoadmap();
-              if (roadmap && (roadmap.total || 0) > 0) {
-                const completedCount = (roadmap.completed || []).length;
-                const currentItem = (roadmap.in_progress || [])[0];
-                const nextItem = (roadmap.todo || [])[0];
-                const lastMsgTs = historicalMessages[historicalMessages.length - 1]?.timestamp;
-                const daysSince = lastMsgTs
-                  ? Math.max(0, Math.floor((Date.now() - lastMsgTs) / 86400000))
-                  : null;
-
-                leadingCard = {
-                  id: 'progress-checkin',
-                  isUser: false,
-                  content: '',
-                  timestamp: Date.now(),
-                  richComponent: {
-                    type: 'progress_checkin',
-                    data: {
-                      userName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'there',
-                      completionPercent: roadmap.completion_pct || 0,
-                      completedModules: completedCount,
-                      currentModule: currentItem?.title || null,
-                      nextModule: nextItem?.title || null,
-                      lastVisitDays: daysSince,
-                    },
-                  },
-                };
-              }
-            } catch (e) {
-              // Roadmap unavailable — no check-in card. Not a fatal error.
-            }
-
-            setMessages(leadingCard ? [leadingCard, ...historicalMessages] : historicalMessages);
+            setMessages(historicalMessages);
             setCurrentStage(history.stage || 'discovery');
             setShowNewChatView(false);
           }
