@@ -497,6 +497,40 @@ def _build_prompt(user_id: str, message: str, stage: str, is_onboarding: bool) -
     return safe_message, prompt + "\n\nUser: " + safe_message, current_stage
 
 
+def _init_wiki_from_onboarding(user_id: str, profile_data: dict, ai_summary: str) -> None:
+    """
+    Background task: seed the 6 wiki pages from onboarding profile data.
+    Runs once when onboarding completes. Subsequent exchanges refine via the
+    normal wiki_service.update_wiki flow.
+    """
+    try:
+        bio = profile_data.get("bio") or ""
+        education = profile_data.get("education") or "Not specified"
+        interests = ", ".join(profile_data.get("career_interests") or []) or "Not specified"
+        skills = ", ".join(profile_data.get("skills") or []) or "Not specified"
+        level = profile_data.get("experience_level") or "Not specified"
+
+        wiki_service.set_page(user_id, "profile", (
+            f"# Profile\n\n"
+            f"- **Education**: {education}\n"
+            f"- **Experience level**: {level}\n"
+            f"- **Skills**: {skills}\n"
+            f"- **Interests**: {interests}\n"
+            f"\n{bio}\n"
+        ))
+        wiki_service.set_page(user_id, "explorations", "# Career Explorations\n\n_Onboarding complete — ready to explore careers._\n")
+        wiki_service.set_page(user_id, "roadmap", "# Learning Roadmap\n\n_No roadmap yet._\n")
+        wiki_service.set_page(user_id, "decisions", "# Key Decisions\n\n_No major decisions yet._\n")
+        wiki_service.set_page(user_id, "session_log", f"# Session Log\n\n### {__import__('datetime').datetime.utcnow().strftime('%Y-%m-%d')}\n- Onboarding completed. Profile established.\n")
+        wiki_service.set_page(user_id, "courses_tracking", "# Courses & Projects\n\n_Nothing tracked yet._\n")
+
+        wiki_service.log_update(user_id, ["profile", "session_log"], "Wiki initialised from onboarding profile.")
+        logger.info("Wiki initialised for user %s from onboarding data", user_id)
+
+    except Exception as exc:
+        logger.warning("Wiki init from onboarding failed for user %s: %s", user_id, exc)
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -532,6 +566,10 @@ async def chat(
                     **{k: v for k, v in profile_data.items() if v is not None},
                     "onboarding_complete": True,
                 })
+                # Initialize the 6 wiki pages from the onboarding profile
+                background_tasks.add_task(
+                    _init_wiki_from_onboarding, user["uid"], profile_data, ai_response
+                )
         else:
             ai_response, current_stage = parse_stage_from_response(ai_response, current_stage)
 

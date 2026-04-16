@@ -211,206 +211,6 @@ const NewChatBtn = styled(NavItem)`
   }
 `;
 
-const RecentsSection = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  padding: 0.5rem;
-  display: ${props => props.$isExpanded ? 'block' : 'none'};
-`;
-
-const RecentsLabel = styled.div`
-  font-size: 0.75rem;
-  color: ${props => props.theme.secondaryText};
-  padding: 0.5rem 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-
-const SessionItemContainer = styled.div`
-  position: relative;
-  display: flex;
-  align-items: center;
-  margin-bottom: 0.125rem;
-  
-  &:hover .menu-trigger {
-    opacity: 1;
-  }
-`;
-
-const SessionItem = styled.button`
-  flex: 1;
-  padding: 0.5rem 0.75rem;
-  padding-right: 1.75rem;
-  background: ${props => props.$isActive ? props.theme.border : 'transparent'};
-  border: none;
-  border-radius: 6px;
-  color: ${props => props.theme.text};
-  font-size: 0.875rem;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  
-  &:hover {
-    background: ${props => props.theme.border};
-  }
-`;
-
-const MenuTrigger = styled.button`
-  opacity: 0;
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
-  color: ${props => props.theme.secondaryText};
-  cursor: pointer;
-  padding: 0.25rem 0.35rem;
-  border-radius: 4px;
-  transition: all 0.15s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  line-height: 1;
-  letter-spacing: 1px;
-  
-  &:hover {
-    background: ${props => props.theme.border};
-    color: ${props => props.theme.text};
-  }
-`;
-
-const DropdownMenu = styled.div`
-  position: absolute;
-  right: 0;
-  top: 100%;
-  z-index: 1000;
-  min-width: 150px;
-  background: ${props => props.theme.sidebar};
-  border: 1px solid ${props => props.theme.border};
-  border-radius: 8px;
-  padding: 0.25rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  animation: menuFadeIn 0.12s ease-out;
-  
-  @keyframes menuFadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(-4px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-`;
-
-const DropdownItem = styled.button`
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  color: ${props => props.$danger ? '#ef4444' : props.theme.text};
-  font-size: 0.813rem;
-  cursor: pointer;
-  transition: background 0.15s ease;
-  
-  &:hover {
-    background: ${props => props.$danger ? 'rgba(239, 68, 68, 0.1)' : props.theme.border};
-  }
-  
-  .menu-icon {
-    font-size: 0.875rem;
-    width: 1.25rem;
-    text-align: center;
-  }
-`;
-
-const ModalOverlay = styled.div`
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: modalOverlayIn 0.15s ease-out;
-  
-  @keyframes modalOverlayIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-`;
-
-const ModalCard = styled.div`
-  background: #2f2f2f;
-  border-radius: 16px;
-  padding: 1.5rem;
-  width: 90%;
-  max-width: 400px;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
-  animation: modalCardIn 0.2s ease-out;
-  
-  @keyframes modalCardIn {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-  
-  h3 {
-    color: #ececec;
-    font-size: 1.125rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-  }
-  
-  p {
-    color: #9b9b9b;
-    font-size: 0.875rem;
-    line-height: 1.5;
-    margin-bottom: 1.5rem;
-  }
-`;
-
-const ModalActions = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-`;
-
-const ModalBtn = styled.button`
-  padding: 0.625rem 1.25rem;
-  border-radius: 10px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  border: none;
-  
-  ${props => props.$variant === 'cancel' ? `
-    background: #3f3f3f;
-    color: #ececec;
-    &:hover { background: #4f4f4f; }
-  ` : `
-    background: #ef4444;
-    color: #ffffff;
-    &:hover { background: #dc2626; }
-  `}
-`;
 
 const SidebarFooter = styled.div`
   padding: 0.75rem;
@@ -581,111 +381,6 @@ const HeaderRight = styled.div`
   }
 `;
 
-const ProfileContainer = styled.div`
-  position: relative;
-`;
-
-const ProfileButton = styled.button`
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 2px solid ${props => props.theme.border};
-  background: ${props => props.theme.cardBackground};
-  cursor: pointer;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
-  &:hover {
-    border-color: ${props => props.theme.buttonBackground};
-    transform: scale(1.05);
-  }
-  
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  
-  .default-icon {
-    font-size: 1.25rem;
-  }
-`;
-
-const ProfileDropdown = styled.div`
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  background: ${props => props.theme.cardBackground};
-  border: 1px solid ${props => props.theme.border};
-  border-radius: 12px;
-  box-shadow: ${props => props.theme.shadowMedium};
-  min-width: 220px;
-  z-index: 100;
-  overflow: hidden;
-  animation: dropdownFade 0.2s ease;
-  
-  @keyframes dropdownFade {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
-  .user-info {
-    padding: 1rem;
-    border-bottom: 1px solid ${props => props.theme.border};
-    
-    .user-name {
-      font-weight: 600;
-      color: ${props => props.theme.text};
-      margin-bottom: 0.25rem;
-    }
-    
-    .user-email {
-      font-size: 0.875rem;
-      color: ${props => props.theme.secondaryText};
-    }
-  }
-  
-  .dropdown-actions {
-    padding: 0.5rem;
-  }
-`;
-
-const DropdownButton = styled.button`
-  width: 100%;
-  padding: 0.75rem 1rem;
-  background: transparent;
-  border: none;
-  color: ${props => props.theme.text};
-  font-size: 0.875rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background: ${props => props.theme.secondaryBackground};
-  }
-  
-  &.sign-out {
-    color: #ef4444;
-    
-    &:hover {
-      background: rgba(239, 68, 68, 0.1);
-    }
-  }
-`;
-
 const SignInButton = styled.button`
   background: ${props => props.theme.buttonBackground};
   color: ${props => props.theme.background};
@@ -784,7 +479,7 @@ const MessageBubble = styled.div`
     color: ${props => props.$isUser ? '#f4ebe4' : '#f6ede5'};
     padding: ${props => props.$isUser ? '0.9rem 1rem' : '0'};
     border: 1px solid ${props => props.$isUser ? 'rgba(255, 252, 247, 0.08)' : 'transparent'};
-    border-radius: ${props => props.$isUser ? '1.2rem' : '0'};
+    border-radius: ${props => props.$isUser ? '16px 16px 4px 16px' : '0'};
     max-width: 100%;
     font-size: ${props => props.$isUser ? '0.98rem' : '1.05rem'};
     line-height: ${props => props.$isUser ? '1.65' : '1.72'};
@@ -936,7 +631,8 @@ const MessageInput = styled.textarea`
   border-radius: 1.4rem;
   resize: none;
   min-height: 54px;
-  max-height: 200px;
+  max-height: 6rem;  /* ~4 visible lines at 1.5 line-height; scrolls internally */
+  overflow-y: auto;
   font-family: inherit;
   font-size: 1rem;
   line-height: 1.5;
@@ -1038,6 +734,11 @@ const FeedbackBar = styled.div`
   gap: 0.375rem;
   margin-top: 0.5rem;
   align-items: center;
+
+  /* Show on hover of the parent message-shell */
+  .message-shell:hover & {
+    display: flex;
+  }
 `;
 
 const FeedbackButton = styled.button`
@@ -1094,14 +795,11 @@ const ChatInterface = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
-  const [sessionId, setSessionId] = useState(null);
   const [currentStage, setCurrentStage] = useState('discovery');
-  const [suggestions, setSuggestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
   // Auth state
   const [user, setUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
   // Sidebar state
@@ -1133,6 +831,23 @@ const ChatInterface = () => {
 
   // Jump-to-latest pill: only show when user has scrolled up meaningfully
   const [isNearBottom, setIsNearBottom] = useState(true);
+
+  // Mobile swipe-to-open sidebar
+  const touchStartX = useRef(null);
+  const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current == null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    // Swipe right from left edge → open sidebar
+    if (dx > 60 && e.changedTouches[0].clientX < 300 && !mobileSidebarOpen) {
+      setMobileSidebarOpen(true);
+    }
+    // Swipe left → close sidebar
+    if (dx < -60 && mobileSidebarOpen) {
+      setMobileSidebarOpen(false);
+    }
+  };
 
   // Initialize dark mode from localStorage after mount
   useEffect(() => {
@@ -1166,12 +881,17 @@ Let's start by understanding your current situation. What brings you here today?
       timestamp: Date.now()
     }]);
 
-    setSuggestions([
-      "I want to transition to a new career",
-      "Help me advance in my current role",
-      "I'm a recent graduate seeking direction",
-      "I'm re-entering the workforce"
-    ]);
+    // Initial suggestions are attached to the welcome message directly
+    setMessages(prev => prev.map((m, i) =>
+      i === prev.length - 1
+        ? { ...m, suggestions: [
+            "I want to transition to a new career",
+            "Help me advance in my current role",
+            "I'm a recent graduate seeking direction",
+            "I'm re-entering the workforce",
+          ]}
+        : m
+    ));
   }, []);
 
   useEffect(() => {
@@ -1329,7 +1049,6 @@ Let's start by understanding your current situation. What brings you here today?
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
-    setSuggestions([]);
 
     // Create placeholder for bot message
     const botMessageId = Date.now() + 1;
@@ -1357,15 +1076,15 @@ Let's start by understanding your current situation. What brings you here today?
         (data) => { // onComplete
           const { stage, suggestions, rich_component, clean_text } = data;
           if (stage) setCurrentStage(stage);
-          setSuggestions(suggestions || []);
           // Replace bot message content with the server-cleaned text (META stripped)
-          // and attach any rich component the AI returned.
+          // and attach rich component + per-message suggestions.
           setMessages(prev => prev.map(msg =>
             msg.id === botMessageId
               ? {
                   ...msg,
                   content: typeof clean_text === 'string' ? clean_text : msg.content,
                   richComponent: rich_component || null,
+                  suggestions: suggestions || [],
                 }
               : msg
           ));
@@ -1390,24 +1109,7 @@ Let's start by understanding your current situation. What brings you here today?
   };
 
   // Handle clicking on a session in sidebar
-  const handleSessionClick = async (session) => {
-    setShowNewChatView(false);
-    setSessionId(session.id);
-    setMobileSidebarOpen(false);
-
-    // Load messages from the session
-    if (session.messages && session.messages.length > 0) {
-      const loadedMessages = session.messages.map((msg, index) => ({
-        id: Date.now() + index,
-        content: msg.content,
-        isUser: msg.isUser,
-        timestamp: new Date(msg.timestamp).getTime()
-      }));
-      setMessages(loadedMessages);
-    }
-  };
-
-  const handleKeyPress = (e) => {
+  const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -1432,7 +1134,6 @@ Let's start by understanding your current situation. What brings you here today?
       await apiService.clearChatHistory();
       setMessages([]);
       setCurrentStage('discovery');
-      setSuggestions([]);
       setShowNewChatView(true);
     } catch (e) {
       console.error('Failed to clear chat:', e);
@@ -1451,9 +1152,7 @@ Let's start by understanding your current situation. What brings you here today?
     }
   };
 
-  const handleFeedback = async (messageId, messageContent, rating) => {
-    // Optimistic UI update. Backend feedback endpoint still expects sessionId
-    // (legacy) — will be rewired to per-message feedback in a follow-up.
+  const handleFeedback = (messageId, rating) => {
     setMessageFeedback(prev => ({ ...prev, [messageId]: rating }));
   };
 
@@ -1492,7 +1191,7 @@ Let's start by understanding your current situation. What brings you here today?
       <GlobalStyle />
       {showAssessment && <AptitudeAssessment onClose={() => setShowAssessment(false)} />}
       {showComparison && <CareerComparison onClose={() => setShowComparison(false)} />}
-      <AppContainer>
+      <AppContainer onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         {/* Mobile Overlay */}
         <SidebarOverlay $isOpen={mobileSidebarOpen} onClick={() => setMobileSidebarOpen(false)} />
 
@@ -1721,7 +1420,7 @@ Let's start by understanding your current situation. What brings you here today?
                       {!message.isUser && displayContent && user && (
                         <FeedbackBar>
                         <FeedbackButton
-                          onClick={() => handleFeedback(message.id, message.content, 'thumbs_up')}
+                          onClick={() => handleFeedback(message.id, 'thumbs_up')}
                           title="Helpful"
                           $active={messageFeedback[message.id] === 'thumbs_up'}
                           $activeColor="#22c55e"
@@ -1731,7 +1430,7 @@ Let's start by understanding your current situation. What brings you here today?
                           <ThumbsUp size={13} />
                         </FeedbackButton>
                         <FeedbackButton
-                          onClick={() => handleFeedback(message.id, message.content, 'thumbs_down')}
+                          onClick={() => handleFeedback(message.id, 'thumbs_down')}
                           title="Not helpful"
                           $active={messageFeedback[message.id] === 'thumbs_down'}
                           $activeColor="#ef4444"
@@ -1746,6 +1445,32 @@ Let's start by understanding your current situation. What brings you here today?
                           </span>
                         )}
                         </FeedbackBar>
+                      )}
+                      {/* Per-message suggestion chips */}
+                      {!message.isUser && Array.isArray(message.suggestions) && message.suggestions.length > 0 && !isLoading && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.6rem' }}>
+                          {message.suggestions.map((chip, ci) => (
+                            <button
+                              key={ci}
+                              onClick={() => handleSendMessage(chip)}
+                              style={{
+                                background: 'rgba(255,255,255,0.04)',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                borderRadius: '999px',
+                                padding: '0.35rem 0.75rem',
+                                fontSize: '0.75rem',
+                                color: '#d4c5b9',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s',
+                                fontFamily: 'inherit',
+                              }}
+                              onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
+                              onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                            >
+                              {chip}
+                            </button>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </MessageBubble>
@@ -1791,7 +1516,7 @@ Let's start by understanding your current situation. What brings you here today?
                       ref={inputRef}
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
-                      onKeyPress={handleKeyPress}
+                      onKeyDown={handleKeyDown}
                       placeholder={STAGE_PLACEHOLDERS[currentStage] || STAGE_PLACEHOLDERS.discovery}
                       disabled={isLoading}
                       rows="1"
