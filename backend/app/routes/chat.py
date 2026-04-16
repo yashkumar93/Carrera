@@ -27,6 +27,7 @@ from app.config import settings
 from app.middleware.auth import get_current_user
 from app.services import firestore_service
 from app.services import wiki_service
+from app.services import knowledge_base
 
 limiter = Limiter(key_func=get_remote_address)
 logger = logging.getLogger(__name__)
@@ -483,11 +484,15 @@ def _build_prompt(user_id: str, message: str, stage: str, is_onboarding: bool) -
     else:
         # Synthesised wiki memory — the AI knows everything about this user
         wiki_context = wiki_service.build_wiki_context(user_id)
+        # Knowledge base — real career data, courses, certs, projects, community insights
+        kb_context = knowledge_base.build_kb_context(safe_message)
         prompt = CAREER_ADVISOR_PROMPT.format(
             stage=current_stage.upper(),
             wiki_context=wiki_context,
             recent_context=recent_context,
         )
+        if kb_context:
+            prompt += "\n\n" + kb_context
 
     return safe_message, prompt + "\n\nUser: " + safe_message, current_stage
 
