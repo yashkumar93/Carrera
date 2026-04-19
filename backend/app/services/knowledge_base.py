@@ -36,6 +36,7 @@ wiki tables        → existing: users/{uid}/wiki/{slug}, users/{uid}/wiki_updat
 """
 
 import logging
+import re
 from typing import List, Dict, Optional, Any
 
 from google.cloud.firestore_v1.base_query import FieldFilter
@@ -171,6 +172,65 @@ def list_all_certifications() -> List[Dict]:
     return [{"id": d.id, **d.to_dict()} for d in docs]
 
 
+# In-memory whitelist cache — loaded once, refreshed on demand
+_cert_name_whitelist: Optional[set] = None
+
+
+def _normalize_cert_name(name: str) -> str:
+    return (name or "").strip().lower()
+
+
+def get_cert_whitelist(refresh: bool = False) -> set:
+    """
+    Return a set of normalized certification names from our curated whitelist.
+    Loaded once per process, cached in-memory.
+    """
+    global _cert_name_whitelist
+    if _cert_name_whitelist is None or refresh:
+        try:
+            certs = list_all_certifications()
+            _cert_name_whitelist = {_normalize_cert_name(c.get("name", "")) for c in certs if c.get("name")}
+            logger.info("Cert whitelist loaded: %d certifications", len(_cert_name_whitelist))
+        except Exception as exc:
+            logger.warning("Could not load cert whitelist: %s", exc)
+            _cert_name_whitelist = set()
+    return _cert_name_whitelist
+
+
+def is_cert_whitelisted(name: str) -> bool:
+    """
+    Match a cert name against the whitelist using exact match first, then
+    token-overlap (handles abbreviations like "AWS SAA" vs full name).
+    Requires ≥70% of the candidate's meaningful tokens to appear in a whitelist entry.
+    """
+    if not name:
+        return False
+    needle = _normalize_cert_name(name)
+    whitelist = get_cert_whitelist()
+    if needle in whitelist:
+        return True
+
+    # Token-overlap fuzzy match
+    STOP = {"the", "of", "and", "a", "an", "in", "on", "for", "with", "by", "-", "–", "&"}
+    def tokens(s):
+        return {t for t in re.split(r"[\s\-,]+", s) if t and t not in STOP and len(t) > 1}
+
+    needle_tokens = tokens(needle)
+    if not needle_tokens:
+        return False
+
+    for wl_name in whitelist:
+        wl_tokens = tokens(wl_name)
+        if not wl_tokens:
+            continue
+        overlap = needle_tokens & wl_tokens
+        # Accept if ≥70% of the shorter side's tokens match
+        smaller = min(len(needle_tokens), len(wl_tokens))
+        if smaller > 0 and len(overlap) / smaller >= 0.7:
+            return True
+    return False
+
+
 # ---------------------------------------------------------------------------
 # Project Ideas
 # ---------------------------------------------------------------------------
@@ -213,13 +273,23 @@ def get_insights_for_career(
 def build_kb_context(query: str, career_hint: Optional[str] = None) -> str:
     """
     Build a knowledge-base context block to inject into the system prompt.
-    Matches careers by keyword, then pulls related courses, certs, projects,
-    and community insights.
+    Semantic search first (via ChromaDB career_index), keyword fallback if that
+    returns nothing. Then pulls related courses, certs, projects, insights.
     """
     sections: List[str] = []
 
-    # Find relevant careers
-    matched_careers = find_careers_by_keyword(query, limit=3)
+    # Semantic match first
+    matched_careers: List[Dict] = []
+    try:
+        from app.services import career_index
+        matched_careers = career_index.search(query, n=3)
+    except Exception as exc:
+        logger.warning("Semantic career search failed, falling back to keyword: %s", exc)
+
+    # Fall back to keyword scoring if semantic returned nothing
+    if not matched_careers:
+        matched_careers = find_careers_by_keyword(query, limit=3)
+
     if career_hint:
         hinted = get_career(career_hint)
         if hinted and hinted["career_id"] not in {c["career_id"] for c in matched_careers}:

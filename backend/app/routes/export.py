@@ -164,3 +164,33 @@ async def export_session_pdf(session_id: str, user: Dict = Depends(get_current_u
             "Content-Length": str(len(pdf_bytes)),
         },
     )
+
+
+@router.get("/chat/export/pdf")
+async def export_chat_history_pdf(user: Dict = Depends(get_current_user)):
+    """
+    Export the user's full persistent chat history as a PDF career plan.
+    Replaces the per-session export now that we're on a single-chat model.
+    """
+    messages = firestore_service.get_chat_history(user["uid"], limit=500)
+    if not messages:
+        raise HTTPException(status_code=404, detail="No chat history to export")
+
+    profile = firestore_service.get_user_profile(user["uid"]) or {}
+    # Build a synthetic "session" dict so _build_pdf can render it unchanged
+    synthetic_session = {
+        "title": "Your Career Plan",
+        "stage": profile.get("chat_stage", "discovery"),
+        "messages": messages,
+    }
+    pdf_bytes = _build_pdf(synthetic_session, profile)
+
+    filename = f"career-plan-{datetime.utcnow().strftime('%Y%m%d')}.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(len(pdf_bytes)),
+        },
+    )

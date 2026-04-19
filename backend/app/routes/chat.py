@@ -433,6 +433,13 @@ def parse_meta_block(text: str) -> tuple:
                 rc_type = rc.get("type")
                 if rc_type not in _VALID_RICH_TYPES or not isinstance(rc.get("data"), dict):
                     rc = None
+                # Certification whitelist enforcement — drop unknown certs
+                elif rc_type == "certification_card":
+                    from app.services import knowledge_base
+                    cert_name = rc["data"].get("name")
+                    if cert_name and not knowledge_base.is_cert_whitelisted(cert_name):
+                        logger.warning("Stripped non-whitelisted certification: %r", cert_name)
+                        rc = None
             else:
                 rc = None
             suggestions = parsed.get("suggestions")

@@ -56,7 +56,7 @@ def _embed(text: str) -> List[float]:
     if client is None:
         raise RuntimeError("Gemini API key not configured")
     result = client.models.embed_content(
-        model="text-embedding-004",
+        model="gemini-embedding-001",
         contents=text[:4000],
     )
     return result.embeddings[0].values

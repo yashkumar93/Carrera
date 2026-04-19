@@ -1,5 +1,8 @@
 'use client';
 
+import { useState } from 'react';
+import apiService from '@/lib/api';
+
 const SECTION_ICONS = {
     profile:       '👤',
     career_target: '🎯',
@@ -23,7 +26,23 @@ export default function ExportPreview({
     onSuggestionClick,
 }) {
     const sectionList = Array.isArray(sections) ? sections : [];
+    const [downloading, setDownloading] = useState(false);
+    const [error, setError] = useState('');
+
     if (sectionList.length === 0) return null;
+
+    const handleDownload = async () => {
+        setError('');
+        setDownloading(true);
+        try {
+            const safeName = (title || 'career-plan').slice(0, 40).replace(/[^a-zA-Z0-9-_ ]/g, '').trim().replace(/ /g, '-') || 'career-plan';
+            await apiService.exportChatHistoryPdf(`${safeName}.pdf`);
+        } catch (e) {
+            setError(e.message || 'Download failed');
+        } finally {
+            setDownloading(false);
+        }
+    };
 
     return (
         <div className="mt-3 bg-gradient-to-br from-slate-800 via-gray-900 to-gray-900 border border-gray-700 rounded-2xl overflow-hidden shadow-xl">
@@ -74,13 +93,15 @@ export default function ExportPreview({
             </div>
 
             {/* Actions */}
-            <div className="border-t border-gray-700 bg-gray-900/50 px-4 py-3 flex flex-wrap gap-2">
+            <div className="border-t border-gray-700 bg-gray-900/50 px-4 py-3 flex flex-wrap gap-2 items-center">
                 <button
-                    onClick={() => onSuggestionClick?.('Yes — generate the PDF now')}
-                    className="text-xs font-medium px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-colors inline-flex items-center gap-1.5"
+                    onClick={handleDownload}
+                    disabled={downloading}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors inline-flex items-center gap-1.5"
                 >
-                    📥 Download PDF
+                    {downloading ? '⏳ Preparing…' : '📥 Download PDF'}
                 </button>
+                {error && <span className="text-xs text-red-400 ml-2">{error}</span>}
                 <button
                     onClick={() => onSuggestionClick?.('Create a shareable link instead of a PDF')}
                     className="text-xs font-medium px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition-colors inline-flex items-center gap-1.5"

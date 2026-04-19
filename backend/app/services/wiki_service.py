@@ -191,6 +191,8 @@ def delete_wiki(user_id: str) -> None:
         doc.reference.delete()
     for doc in _update_log_col(user_id).stream():
         doc.reference.delete()
+    # Drop any pending buffered exchanges so they don't re-create the wiki
+    _pending_buffer.pop(user_id, None)
     logger.info("Wiki + update log deleted for user %s", user_id)
 
 
@@ -244,11 +246,42 @@ def build_wiki_context(user_id: str) -> str:
 # Background wiki updater
 # ---------------------------------------------------------------------------
 
+WIKI_UPDATE_INTERVAL = 3  # Update wiki every N user messages (saves Gemini calls)
+_pending_buffer: Dict[str, List[Dict[str, str]]] = {}  # user_id → buffered exchanges
+
+
 async def update_wiki(user_id: str, user_message: str, ai_response: str) -> None:
     """
-    Called as a FastAPI BackgroundTask after every AI response.
-    Never blocks the response — failures are logged and swallowed.
+    Rate-limited wiki updater. Buffers exchanges per user and fires Gemini
+    only every WIKI_UPDATE_INTERVAL messages — batches context for richer
+    updates and cuts Gemini cost by ~3x.
     """
+    if not settings.gemini_api_key:
+        return
+    buffer = _pending_buffer.setdefault(user_id, [])
+    buffer.append({"user": user_message, "assistant": ai_response})
+    if len(buffer) < WIKI_UPDATE_INTERVAL:
+        return
+    exchanges = _pending_buffer.pop(user_id, [])
+    combined_user = "\n---\n".join(e["user"] for e in exchanges)
+    combined_ai = "\n---\n".join(e["assistant"] for e in exchanges)
+    await _do_update_wiki(user_id, combined_user, combined_ai)
+
+
+async def flush_wiki(user_id: str) -> None:
+    """Force a wiki update for any pending buffered exchanges (call on chat clear)."""
+    if not settings.gemini_api_key:
+        return
+    exchanges = _pending_buffer.pop(user_id, [])
+    if not exchanges:
+        return
+    combined_user = "\n---\n".join(e["user"] for e in exchanges)
+    combined_ai = "\n---\n".join(e["assistant"] for e in exchanges)
+    await _do_update_wiki(user_id, combined_user, combined_ai)
+
+
+async def _do_update_wiki(user_id: str, user_message: str, ai_response: str) -> None:
+    """Actually call Gemini and apply the wiki updates."""
     if not settings.gemini_api_key:
         return
 

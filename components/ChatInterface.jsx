@@ -1349,7 +1349,14 @@ Let's start by understanding your current situation. What brings you here today?
                 {getStageDisplay(currentStage)}
               </StagePill>
               <ChatFrame>
-              <MessagesArea ref={messagesAreaRef} onScroll={handleMessagesScroll}>
+              <MessagesArea
+                ref={messagesAreaRef}
+                onScroll={handleMessagesScroll}
+                role="log"
+                aria-label="Chat conversation"
+                aria-live="polite"
+                aria-relevant="additions"
+              >
                 {messages.map((message) => {
                   // Strip any in-progress <<META>> tokens during streaming so
                   // the raw delimiter never reaches the UI. On stream-complete,
@@ -1358,8 +1365,13 @@ Let's start by understanding your current situation. What brings you here today?
                     ? message.content
                     : (message.content || '').split('<<META>>')[0];
                   return (
-                  <MessageBubble key={message.id} $isUser={message.isUser}>
-                    <div className="message-avatar">
+                  <MessageBubble
+                    key={message.id}
+                    $isUser={message.isUser}
+                    role={message.isUser ? 'note' : 'article'}
+                    aria-label={message.isUser ? 'Your message' : 'Assistant response'}
+                  >
+                    <div className="message-avatar" aria-hidden="true">
                       {message.isUser ? <User size={16} /> : <Sparkles size={15} />}
                     </div>
                     <div className="message-shell">
@@ -1386,6 +1398,7 @@ Let's start by understanding your current situation. What brings you here today?
                         <FeedbackButton
                           onClick={() => handleFeedback(message.id, 'thumbs_up')}
                           title="Helpful"
+                          aria-label="Mark response as helpful"
                           $active={messageFeedback[message.id] === 'thumbs_up'}
                           $activeColor="#22c55e"
                           $activeColorBg={isDarkMode ? 'rgba(34,197,94,0.2)' : 'rgba(34,197,94,0.15)'}
@@ -1396,6 +1409,7 @@ Let's start by understanding your current situation. What brings you here today?
                         <FeedbackButton
                           onClick={() => handleFeedback(message.id, 'thumbs_down')}
                           title="Not helpful"
+                          aria-label="Mark response as not helpful"
                           $active={messageFeedback[message.id] === 'thumbs_down'}
                           $activeColor="#ef4444"
                           $activeColorBg={isDarkMode ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.15)'}
@@ -1412,11 +1426,16 @@ Let's start by understanding your current situation. What brings you here today?
                       )}
                       {/* Per-message suggestion chips */}
                       {!message.isUser && Array.isArray(message.suggestions) && message.suggestions.length > 0 && !isLoading && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.6rem' }}>
+                        <div
+                          role="group"
+                          aria-label="Suggested follow-up prompts"
+                          style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.6rem' }}
+                        >
                           {message.suggestions.map((chip, ci) => (
                             <button
                               key={ci}
                               onClick={() => handleSendMessage(chip)}
+                              aria-label={`Send suggested prompt: ${chip}`}
                               style={{
                                 background: 'rgba(255,255,255,0.04)',
                                 border: '1px solid rgba(255,255,255,0.1)',
@@ -1467,6 +1486,7 @@ Let's start by understanding your current situation. What brings you here today?
                 {!isNearBottom && messages.length > 2 && (
                   <JumpToLatestButton
                     onClick={() => { setIsNearBottom(true); scrollToBottom('smooth'); }}
+                    aria-label="Jump to latest message"
                   >
                     ↓ Jump to latest
                   </JumpToLatestButton>
@@ -1475,7 +1495,7 @@ Let's start by understanding your current situation. What brings you here today?
 
               <InputSection>
                 <ComposerCard>
-                  <div className="input-container">
+                  <div className="input-container" role="form" aria-label="Send a message">
                     <MessageInput
                       ref={inputRef}
                       value={inputValue}
@@ -1484,12 +1504,14 @@ Let's start by understanding your current situation. What brings you here today?
                       placeholder={STAGE_PLACEHOLDERS[currentStage] || STAGE_PLACEHOLDERS.discovery}
                       disabled={isLoading}
                       rows="1"
+                      aria-label="Type your message to the career counselor"
                     />
                     <SendButton
                       onClick={() => handleSendMessage()}
                       disabled={isLoading || !inputValue.trim()}
+                      aria-label="Send message"
                     >
-                      <ArrowUp size={18} />
+                      <ArrowUp size={18} aria-hidden="true" />
                     </SendButton>
                   </div>
                   <ComposerFooter>
