@@ -34,6 +34,14 @@ class Settings(BaseSettings):
     # Pagination
     max_sessions_per_page: int = 20
 
+    # Pinecone (community insights vector DB)
+    pinecone_api_key: str = ""
+    pinecone_index_name: str = "career-insights"
+    pinecone_namespace: str = ""  # Optional — leave empty if you don't use namespaces
+    # The embedding model Pinecone was loaded with. Query-time embeddings must
+    # use the SAME model/dims for cosine similarity to be meaningful.
+    pinecone_embedding_model: str = "gemini-embedding-001"
+
     @property
     def cors_origins(self) -> List[str]:
         return [origin.strip() for origin in self.cors_origins_str.split(",")]

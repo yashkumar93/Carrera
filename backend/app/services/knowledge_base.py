@@ -341,16 +341,37 @@ def build_kb_context(query: str, career_hint: Optional[str] = None) -> str:
         ]
         sections.append("### Project Ideas\n" + "\n".join(project_lines))
 
+    # Community insights — try Pinecone (Reddit data), fall back to Firestore
+    insights: List[Dict] = []
     try:
-        insights = get_insights_for_career(cid, limit=2)
-        if insights:
-            insight_lines = [
-                f"- [{i.get('sentiment', 'mixed')}] \"{i.get('key_takeaway', i.get('raw_text', '')[:120])}\""
-                for i in insights
+        from app.services import pinecone_insights
+        if pinecone_insights.is_available():
+            insights = pinecone_insights.query_insights(query, career_id=cid, top_k=3)
+    except Exception as exc:
+        logger.warning("Pinecone insights query failed: %s", exc)
+
+    if not insights:
+        try:
+            raw_insights = get_insights_for_career(cid, limit=2)
+            insights = [
+                {
+                    "insight": r.get("key_takeaway") or r.get("raw_text", "")[:200],
+                    "sentiment": r.get("sentiment", "mixed"),
+                    "source": r.get("reddit_topic", "community"),
+                }
+                for r in raw_insights
             ]
-            sections.append("### Community Perspectives\n" + "\n".join(insight_lines))
-    except Exception:
-        pass  # Community insights not indexed yet — skip gracefully
+        except Exception:
+            pass  # No insights available — skip gracefully
+
+    if insights:
+        insight_lines = [
+            f"- [{i.get('sentiment', 'mixed')}] \"{i.get('insight', '')[:200]}\" ({i.get('source', '')})"
+            for i in insights
+            if i.get('insight')
+        ]
+        if insight_lines:
+            sections.append("### Community Perspectives (from Reddit)\n" + "\n".join(insight_lines))
 
     if not sections:
         return ""
