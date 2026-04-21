@@ -38,9 +38,10 @@ class Settings(BaseSettings):
     pinecone_api_key: str = ""
     pinecone_index_name: str = "career-insights"
     pinecone_namespace: str = ""  # Optional — leave empty if you don't use namespaces
-    # The embedding model Pinecone was loaded with. Query-time embeddings must
-    # use the SAME model/dims for cosine similarity to be meaningful.
-    pinecone_embedding_model: str = "gemini-embedding-001"
+    # Embedding model used to upsert the Pinecone index. Query-time
+    # embeddings MUST use the same model/dims for cosine similarity to work.
+    # Your redditdata index was loaded with sentence-transformers all-MiniLM-L6-v2 (384-dim).
+    pinecone_embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
 
     @property
     def cors_origins(self) -> List[str]:

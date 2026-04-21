@@ -36,26 +36,41 @@ index with a different model, set `PINECONE_EMBEDDING_MODEL` in `.env`.
 import logging
 from typing import List, Dict, Optional
 
-from google import genai
-
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 _pc_client = None
 _pc_index = None
-_genai_client = None
+_st_model = None  # sentence-transformers model, lazy-loaded
 
 
 # ---------------------------------------------------------------------------
 # Lazy clients
 # ---------------------------------------------------------------------------
 
-def _get_genai():
-    global _genai_client
-    if _genai_client is None and settings.gemini_api_key:
-        _genai_client = genai.Client(api_key=settings.gemini_api_key)
-    return _genai_client
+def _get_embedding_model():
+    """
+    Lazy-load the sentence-transformers model that matches what was used to
+    embed the Pinecone index. First call downloads the model weights (~90 MB)
+    and is slow; subsequent calls are instant.
+    """
+    global _st_model
+    if _st_model is not None:
+        return _st_model
+    try:
+        from sentence_transformers import SentenceTransformer
+        model_name = settings.pinecone_embedding_model
+        # Strip the "sentence-transformers/" prefix if present — both forms work
+        if model_name.startswith("sentence-transformers/"):
+            model_name = model_name.split("/", 1)[1]
+        logger.info("Loading sentence-transformers model: %s", model_name)
+        _st_model = SentenceTransformer(model_name)
+        logger.info("Embedding model ready (dim=%d)", _st_model.get_sentence_embedding_dimension())
+    except Exception as exc:
+        logger.warning("Could not load embedding model: %s", exc)
+        return None
+    return _st_model
 
 
 def _get_pinecone_index():
@@ -77,17 +92,16 @@ def _get_pinecone_index():
 
 
 def _embed(text: str) -> Optional[List[float]]:
-    client = _get_genai()
-    if client is None:
+    """Embed a query string with the same model used to build the index."""
+    model = _get_embedding_model()
+    if model is None:
         return None
     try:
-        result = client.models.embed_content(
-            model=settings.pinecone_embedding_model,
-            contents=text[:4000],
-        )
-        return result.embeddings[0].values
+        # sentence-transformers returns a numpy array; tolist() gives the List[float] Pinecone expects
+        vec = model.encode(text[:2000], convert_to_numpy=True)
+        return vec.tolist()
     except Exception as exc:
-        logger.warning("Pinecone query embedding failed: %s", exc)
+        logger.warning("Query embedding failed: %s", exc)
         return None
 
 
