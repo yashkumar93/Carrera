@@ -928,7 +928,6 @@ Let's start by understanding your current situation. What brings you here today?
       } else {
         setUser(null);
       }
-      setAuthLoading(false);
     });
 
     return () => unsubscribe();
