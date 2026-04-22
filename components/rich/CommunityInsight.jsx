@@ -6,10 +6,6 @@ const SENTIMENT_STYLES = {
     mixed:    { badge: 'bg-amber-900/40 text-amber-300 border-amber-700/40', dot: 'bg-amber-400', label: 'Mixed' },
 };
 
-/**
- * Community perspective from forum discussions. Always framed as "professionals
- * report that..." — never as fact. Includes sentiment context + source.
- */
 export default function CommunityInsight({
     insight,
     sentiment,
@@ -24,7 +20,6 @@ export default function CommunityInsight({
 
     return (
         <div className="mt-3 bg-gradient-to-br from-amber-950/30 via-orange-950/20 to-gray-900 border border-amber-700/30 rounded-2xl overflow-hidden shadow-xl">
-            {/* Header */}
             <div className="px-5 pt-4 pb-2 flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${style.dot}`} />
@@ -35,14 +30,12 @@ export default function CommunityInsight({
                 </span>
             </div>
 
-            {/* Quote */}
             <div className="px-5 py-3">
-                <blockquote className="text-sm text-gray-200 leading-relaxed italic border-l-2 border-amber-600/50 pl-3">
-                    "{insight}"
-                </blockquote>
+                <p className="text-sm text-gray-200 leading-relaxed border-l-2 border-amber-600/50 pl-3">
+                    {insight}
+                </p>
             </div>
 
-            {/* Source + type */}
             <div className="px-5 pb-4 flex items-center gap-2 text-[11px] text-gray-500">
                 {insightType && (
                     <>
@@ -52,25 +45,30 @@ export default function CommunityInsight({
                 )}
                 {source && (
                     <span>
-                        Based on community discussions in <span className="text-gray-400">{source}</span>
+                        From community discussions in <span className="text-gray-400">{source}</span>
                     </span>
                 )}
                 {postDate && <span className="ml-auto text-gray-600">{postDate}</span>}
             </div>
 
-            {/* Feedback actions */}
-            <div className="border-t border-amber-800/20 bg-gray-900/50 px-4 py-2.5 flex gap-2">
+            <div className="border-t border-amber-800/20 bg-gray-900/50 px-4 py-3 flex flex-wrap gap-2">
                 <button
-                    onClick={() => onSuggestionClick?.('Share more community perspectives on this')}
-                    className="text-xs font-medium px-3 py-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition-colors"
+                    onClick={() => onSuggestionClick?.('Show me more insights like this')}
+                    className="text-xs font-medium px-3 py-2 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-200 border border-amber-500/30 transition-colors"
                 >
-                    👍 Helpful
+                    See more insights
                 </button>
                 <button
-                    onClick={() => onSuggestionClick?.("This isn't what I was looking for — tell me more about the data")}
-                    className="text-xs font-medium px-3 py-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-500 border border-gray-700 transition-colors"
+                    onClick={() => onSuggestionClick?.('What should I do based on this?')}
+                    className="text-xs font-medium px-3 py-2 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 transition-colors"
                 >
-                    Not relevant
+                    What should I do next?
+                </button>
+                <button
+                    onClick={() => onSuggestionClick?.('Give me practical steps for this career path')}
+                    className="text-xs font-medium px-3 py-2 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 transition-colors"
+                >
+                    Show next steps
                 </button>
             </div>
         </div>

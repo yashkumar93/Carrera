@@ -1,6 +1,6 @@
 """
 Career Comparison Engine — compare 2-3 career paths side-by-side using
-Gemini-enriched labor market data.  Returns structured data suitable
+AI-enriched labor market data. Returns structured data suitable
 for chart rendering on the frontend.
 """
 import json
@@ -9,18 +9,12 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Dict, List
 
-from google import genai
-
-from app.config import settings
 from app.middleware.auth import get_current_user
 from app.services import firestore_service
+from app.services import llm_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-gemini_client = None
-if settings.gemini_api_key:
-    gemini_client = genai.Client(api_key=settings.gemini_api_key)
 
 # ---------------------------------------------------------------------------
 # Models
@@ -73,15 +67,11 @@ Return a JSON object (raw JSON only, no markdown):
 }}"""
 
 
-def _call_gemini(prompt: str):
-    if not gemini_client:
+def _call_llm(prompt: str):
+    if not llm_service.is_configured():
         raise HTTPException(status_code=503, detail="AI service not configured")
     try:
-        response = gemini_client.models.generate_content(
-            model=settings.gemini_model,
-            contents=prompt,
-        )
-        raw = response.text.strip()
+        raw = llm_service.generate_text(prompt).strip()
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
@@ -90,7 +80,7 @@ def _call_gemini(prompt: str):
     except json.JSONDecodeError:
         raise HTTPException(status_code=502, detail="AI returned invalid JSON. Please retry.")
     except Exception as exc:
-        logger.error("Gemini compare failed: %s", exc)
+        logger.error("Groq compare failed: %s", exc)
         raise HTTPException(status_code=502, detail="AI service error. Please retry.")
 
 
@@ -122,6 +112,6 @@ async def compare_careers(body: CompareRequest, user: Dict = Depends(get_current
         skills=", ".join(skills) if skills else "not specified",
     )
 
-    result = _call_gemini(prompt)
+    result = _call_llm(prompt)
     logger.info("Career comparison for user %s: %s", user["uid"], careers)
     return result

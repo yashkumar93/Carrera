@@ -10,9 +10,9 @@ Output JSONL: one line per post with all fields needed for Pinecone upsert:
 
 Features:
 - Resumable: writes a processed-ids checkpoint so re-runs skip done rows
-- Rate-limited: sleeps between Gemini calls to respect free-tier quotas
-- One Gemini call per post extracts all 5 classification fields at once
-- Separate embedding call (different model, different endpoint)
+- Rate-limited: sleeps between AI calls to respect provider quotas
+- One Groq call per post extracts all 5 classification fields at once
+- Separate embedding call via sentence-transformers
 
 Usage:
     cd backend
@@ -36,17 +36,14 @@ from typing import Dict, Optional
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from google import genai
-
 from app.config import settings
 from app.services.firestore_service import init_firebase
 from app.services import knowledge_base
+from app.services import llm_service
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("enrich")
 
-EMBED_MODEL = settings.pinecone_embedding_model  # default gemini-embedding-001
-CHAT_MODEL = settings.gemini_model                # e.g. gemini-2.0-flash
 CALL_DELAY = 0.35                                 # ~170 req/min, safe for free tier
 
 INSIGHT_TYPES = [
@@ -57,7 +54,7 @@ SENTIMENTS = ["positive", "negative", "mixed", "neutral"]
 
 
 # ---------------------------------------------------------------------------
-# Gemini prompt — one shot extracts everything
+# LLM prompt — one shot extracts everything
 # ---------------------------------------------------------------------------
 
 def build_extraction_prompt(title: str, body: str, career_slugs: list[str]) -> str:
@@ -84,20 +81,17 @@ Rules:
 
 
 # ---------------------------------------------------------------------------
-# Gemini helpers
+# LLM helpers
 # ---------------------------------------------------------------------------
-
-_gemini = genai.Client(api_key=settings.gemini_api_key) if settings.gemini_api_key else None
 
 
 def classify_post(title: str, body: str, career_slugs: list[str]) -> Optional[Dict]:
-    """Call Gemini to extract structured fields. Returns None on failure."""
-    if not _gemini:
-        raise RuntimeError("GEMINI_API_KEY not set")
+    """Call Groq to extract structured fields. Returns None on failure."""
+    if not llm_service.is_configured():
+        raise RuntimeError("GROQ_API_KEY not set")
     prompt = build_extraction_prompt(title or "", body or "", career_slugs)
     try:
-        resp = _gemini.models.generate_content(model=CHAT_MODEL, contents=prompt)
-        raw = (resp.text or "").strip()
+        raw = llm_service.generate_text(prompt).strip()
         # Strip fences if the model added them
         if raw.startswith("```"):
             raw = raw.split("```")[1]
@@ -109,7 +103,7 @@ def classify_post(title: str, body: str, career_slugs: list[str]) -> Optional[Di
         logger.warning("JSON parse failed: %s — raw=%r", exc, raw[:200])
         return None
     except Exception as exc:
-        logger.warning("Gemini classify failed: %s", exc)
+        logger.warning("Groq classify failed: %s", exc)
         return None
 
     # Normalise
@@ -128,11 +122,10 @@ def classify_post(title: str, body: str, career_slugs: list[str]) -> Optional[Di
 
 def embed_post(text: str) -> Optional[list[float]]:
     """Get embedding for the post. Returns None on failure."""
-    if not _gemini:
+    if not llm_service.is_configured():
         return None
     try:
-        resp = _gemini.models.embed_content(model=EMBED_MODEL, contents=text[:4000])
-        return resp.embeddings[0].values
+        return llm_service.embed_text(text)
     except Exception as exc:
         logger.warning("Embedding failed: %s", exc)
         return None
@@ -162,8 +155,8 @@ def main():
     p.add_argument("--min-quality", type=float, default=0.0, help="Drop posts with quality < this (applied post-classification)")
     args = p.parse_args()
 
-    if not _gemini:
-        logger.error("GEMINI_API_KEY not configured in .env")
+    if not llm_service.is_configured():
+        logger.error("GROQ_API_KEY not configured in .env")
         sys.exit(1)
 
     init_firebase()

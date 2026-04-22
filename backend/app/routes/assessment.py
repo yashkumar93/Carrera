@@ -8,18 +8,12 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Dict, List, Optional
 
-from google import genai
-
-from app.config import settings
 from app.middleware.auth import get_current_user
 from app.services import firestore_service
+from app.services import llm_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-gemini_client = None
-if settings.gemini_api_key:
-    gemini_client = genai.Client(api_key=settings.gemini_api_key)
 
 
 # ---------------------------------------------------------------------------
@@ -106,26 +100,22 @@ Score the assessment and return a JSON object (raw JSON only, no markdown):
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _call_gemini_json(prompt: str) -> any:
-    """Call Gemini and parse the JSON response."""
-    if not gemini_client:
+def _call_llm_json(prompt: str) -> any:
+    """Call Groq and parse the JSON response."""
+    if not llm_service.is_configured():
         raise HTTPException(status_code=503, detail="AI service not configured")
     try:
-        response = gemini_client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt,
-        )
-        raw = response.text.strip()
+        raw = llm_service.generate_text(prompt).strip()
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
                 raw = raw[4:]
         return json.loads(raw)
     except json.JSONDecodeError as exc:
-        logger.error("Gemini non-JSON response: %s", exc)
+        logger.error("Groq returned non-JSON: %s", exc)
         raise HTTPException(status_code=502, detail="AI returned invalid JSON. Please retry.")
     except Exception as exc:
-        logger.error("Gemini call failed: %s", exc)
+        logger.error("Groq call failed: %s", exc)
         raise HTTPException(status_code=502, detail="AI service error. Please retry.")
 
 
@@ -147,7 +137,7 @@ async def generate_assessment(
         num_questions=body.num_questions,
         career=body.career,
     )
-    questions = _call_gemini_json(prompt)
+    questions = _call_llm_json(prompt)
 
     if not isinstance(questions, list):
         raise HTTPException(status_code=502, detail="Unexpected AI response format")
@@ -188,7 +178,7 @@ async def score_assessment(
         qa_pairs="\n\n".join(qa_pairs),
     )
 
-    result = _call_gemini_json(prompt)
+    result = _call_llm_json(prompt)
     if not isinstance(result, dict):
         raise HTTPException(status_code=502, detail="Unexpected AI response format")
 

@@ -6,12 +6,11 @@ import ReactMarkdown from 'react-markdown';
 import apiService from '../lib/api';
 import { signInWithGoogle, signOutUser, onAuthChange } from '../lib/firebase';
 import ClaudeChatInput from './ui/claude-chat-input';
-import { Menu, PanelLeftClose, Trash2, ArrowUp, LogOut, User, ThumbsUp, ThumbsDown, Settings, Sparkles, Moon, Sun, Download, Compass, ChevronDown } from 'lucide-react';
+import { Menu, PanelLeftClose, Trash2, ArrowUp, LogOut, User, ThumbsUp, ThumbsDown, Settings, Sparkles, Download, Compass, ChevronDown } from 'lucide-react';
 import ProfileSettings from './ProfileSettings';
 import RichResponseRenderer from './rich/RichResponseRenderer';
 import AptitudeAssessment from './AptitudeAssessment';
 import CareerComparison from './CareerComparison';
-import LanguageSwitcher from './LanguageSwitcher';
 // Global styles for dark mode
 const GlobalStyle = createGlobalStyle`
   * {
@@ -792,7 +791,7 @@ const STAGE_PLACEHOLDERS = {
 };
 
 const ChatInterface = () => {
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const isDarkMode = true;
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [currentStage, setCurrentStage] = useState('discovery');
@@ -848,18 +847,6 @@ const ChatInterface = () => {
       setMobileSidebarOpen(false);
     }
   };
-
-  // Initialize dark mode from localStorage after mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedMode = localStorage.getItem('darkMode') === 'true';
-      setIsDarkMode(savedMode);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('darkMode', isDarkMode);
-  }, [isDarkMode]);
 
   useEffect(() => {
     // Welcome message
@@ -970,10 +957,6 @@ Let's start by understanding your current situation. What brings you here today?
     if (!el) return;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     setIsNearBottom(distanceFromBottom < 120);
-  };
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
   };
 
   const handleSignIn = async () => {
@@ -1324,11 +1307,6 @@ Let's start by understanding your current situation. What brings you here today?
                   {exportingPdf ? 'Exporting…' : 'Export PDF'}
                 </ThemeToggle>
               )}
-              <ThemeToggle onClick={toggleTheme} title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
-                {isDarkMode ? <Sun size={15} /> : <Moon size={15} />}
-                {isDarkMode ? 'Light' : 'Dark'}
-              </ThemeToggle>
-              <LanguageSwitcher />
             </HeaderRight>
           </Header>
 

@@ -9,18 +9,12 @@ from fastapi import APIRouter, HTTPException, Header, Depends, status
 from pydantic import BaseModel, Field
 from typing import Dict, List, Optional
 
-from google import genai
-
-from app.config import settings
 from app.middleware.auth import get_current_user
 from app.services import firestore_service
+from app.services import llm_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-gemini_client = None
-if settings.gemini_api_key:
-    gemini_client = genai.Client(api_key=settings.gemini_api_key)
 
 
 # ---------------------------------------------------------------------------
@@ -127,7 +121,7 @@ async def public_suggest_careers(
     **Public API** — Suggest career paths based on a user profile.
     Requires `X-API-Key` header. Generate a key at `POST /api/keys`.
     """
-    if not gemini_client:
+    if not llm_service.is_configured():
         raise HTTPException(status_code=503, detail="AI service not configured")
 
     prompt = SUGGEST_PROMPT.format(
@@ -139,11 +133,7 @@ async def public_suggest_careers(
     )
 
     try:
-        response = gemini_client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt,
-        )
-        raw = response.text.strip()
+        raw = llm_service.generate_text(prompt).strip()
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):

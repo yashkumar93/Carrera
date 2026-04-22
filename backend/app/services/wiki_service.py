@@ -34,10 +34,9 @@ import logging
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from google import genai
-
 from app.config import settings
 from app.services import firestore_service
+from app.services import llm_service
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +72,7 @@ INITIAL_PAGES: Dict[str, str] = {
 }
 
 # ---------------------------------------------------------------------------
-# Gemini prompt — the schema layer
+# LLM prompt — the schema layer
 # ---------------------------------------------------------------------------
 
 WIKI_UPDATE_PROMPT = """You are the wiki maintainer for a career-counseling app.
@@ -246,17 +245,17 @@ def build_wiki_context(user_id: str) -> str:
 # Background wiki updater
 # ---------------------------------------------------------------------------
 
-WIKI_UPDATE_INTERVAL = 3  # Update wiki every N user messages (saves Gemini calls)
+WIKI_UPDATE_INTERVAL = 3  # Update wiki every N user messages (saves LLM calls)
 _pending_buffer: Dict[str, List[Dict[str, str]]] = {}  # user_id → buffered exchanges
 
 
 async def update_wiki(user_id: str, user_message: str, ai_response: str) -> None:
     """
-    Rate-limited wiki updater. Buffers exchanges per user and fires Gemini
+    Rate-limited wiki updater. Buffers exchanges per user and fires Groq
     only every WIKI_UPDATE_INTERVAL messages — batches context for richer
-    updates and cuts Gemini cost by ~3x.
+    updates and cuts LLM cost by ~3x.
     """
-    if not settings.gemini_api_key:
+    if not llm_service.is_configured():
         return
     buffer = _pending_buffer.setdefault(user_id, [])
     buffer.append({"user": user_message, "assistant": ai_response})
@@ -270,7 +269,7 @@ async def update_wiki(user_id: str, user_message: str, ai_response: str) -> None
 
 async def flush_wiki(user_id: str) -> None:
     """Force a wiki update for any pending buffered exchanges (call on chat clear)."""
-    if not settings.gemini_api_key:
+    if not llm_service.is_configured():
         return
     exchanges = _pending_buffer.pop(user_id, [])
     if not exchanges:
@@ -281,8 +280,8 @@ async def flush_wiki(user_id: str) -> None:
 
 
 async def _do_update_wiki(user_id: str, user_message: str, ai_response: str) -> None:
-    """Actually call Gemini and apply the wiki updates."""
-    if not settings.gemini_api_key:
+    """Actually call Groq and apply the wiki updates."""
+    if not llm_service.is_configured():
         return
 
     try:
@@ -299,13 +298,7 @@ async def _do_update_wiki(user_id: str, user_message: str, ai_response: str) -> 
             date=datetime.utcnow().strftime("%Y-%m-%d"),
         )
 
-        client = genai.Client(api_key=settings.gemini_api_key)
-        response = client.models.generate_content(
-            model=settings.gemini_model,
-            contents=prompt,
-        )
-
-        raw = response.text.strip()
+        raw = llm_service.generate_text(prompt).strip()
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
@@ -330,6 +323,6 @@ async def _do_update_wiki(user_id: str, user_message: str, ai_response: str) -> 
             )
 
     except json.JSONDecodeError as exc:
-        logger.warning("Wiki update: invalid JSON from Gemini for user %s — %s", user_id, exc)
+        logger.warning("Wiki update: invalid JSON from Groq for user %s — %s", user_id, exc)
     except Exception as exc:
         logger.warning("Wiki update failed for user %s: %s", user_id, exc)

@@ -146,7 +146,7 @@ export default function AptitudeAssessment({ onClose }) {
         {phase === PHASES.SETUP && (
           <>
             <p style={{ color: '#888', fontSize: '0.88rem', marginBottom: '1.5rem' }}>
-              Take a personalised quiz to discover how well you match a target career. Gemini AI will generate relevant questions and score your responses.
+              Take a personalised quiz to discover how well you match a target career. Groq Llama will generate relevant questions and score your responses.
             </p>
             <label style={s.label}>Target Career *</label>
             <input
@@ -231,7 +231,7 @@ export default function AptitudeAssessment({ onClose }) {
           <div style={{ textAlign: 'center', padding: '2rem 0', color: '#888' }}>
             <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🧠</div>
             <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Scoring your responses...</div>
-            <div style={{ fontSize: '0.85rem' }}>Gemini AI is generating your skill gap report</div>
+            <div style={{ fontSize: '0.85rem' }}>Groq Llama is generating your skill gap report</div>
           </div>
         )}
 

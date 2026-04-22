@@ -17,10 +17,9 @@ from typing import List, Dict, Optional
 
 import chromadb
 from chromadb.config import Settings
-from google import genai
 
-from app.config import settings
 from app.services import firestore_service
+from app.services import llm_service
 
 logger = logging.getLogger(__name__)
 
@@ -28,16 +27,6 @@ COLLECTION_NAME = "careers_index"
 
 _chroma_client: Optional[chromadb.PersistentClient] = None
 _collection = None
-_genai_client = None
-
-
-def _get_genai():
-    global _genai_client
-    if _genai_client is None and settings.gemini_api_key:
-        _genai_client = genai.Client(api_key=settings.gemini_api_key)
-    return _genai_client
-
-
 def _get_collection():
     global _chroma_client, _collection
     if _collection is None:
@@ -53,14 +42,7 @@ def _get_collection():
 
 
 def _embed(text: str) -> List[float]:
-    client = _get_genai()
-    if client is None:
-        raise RuntimeError("Gemini API key not configured")
-    result = client.models.embed_content(
-        model="gemini-embedding-001",
-        contents=text[:4000],
-    )
-    return result.embeddings[0].values
+    return llm_service.embed_text(text)
 
 
 def _career_to_searchable_text(career: Dict) -> str:

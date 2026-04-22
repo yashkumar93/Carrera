@@ -9,18 +9,12 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel, Field
 from typing import Dict, List, Optional
 
-from google import genai
-
-from app.config import settings
 from app.middleware.auth import get_current_user
 from app.services import firestore_service
+from app.services import llm_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-gemini_client = None
-if settings.gemini_api_key:
-    gemini_client = genai.Client(api_key=settings.gemini_api_key)
 
 VALID_STATUSES = {"todo", "in_progress", "completed"}
 
@@ -123,11 +117,11 @@ def _delete_item(user_id: str, item_id: str) -> bool:
 @router.post("/roadmap/generate")
 async def generate_roadmap(body: GenerateRoadmapRequest, user: Dict = Depends(get_current_user)):
     """
-    Generate a personalised learning roadmap using Gemini.
+    Generate a personalised learning roadmap using Groq.
     Saves items to the user's roadmap collection (all as 'todo').
     Returns the generated items.
     """
-    if not gemini_client:
+    if not llm_service.is_configured():
         raise HTTPException(status_code=503, detail="AI service not configured")
 
     profile = firestore_service.get_user_profile(user["uid"]) or {}
@@ -142,11 +136,7 @@ async def generate_roadmap(body: GenerateRoadmapRequest, user: Dict = Depends(ge
     )
 
     try:
-        response = gemini_client.models.generate_content(
-            model=settings.gemini_model,
-            contents=prompt,
-        )
-        raw = response.text.strip()
+        raw = llm_service.generate_text(prompt).strip()
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):

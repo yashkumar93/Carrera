@@ -84,7 +84,7 @@
     "startBtn": "Start Assessment",
     "generating": "Generating questions...",
     "scoring": "Scoring your responses...",
-    "scoringDesc": "Gemini AI is generating your skill gap report",
+    "scoringDesc": "Groq Llama is generating your skill gap report",
     "submit": "Submit",
     "back": "Back",
     "next": "Next",

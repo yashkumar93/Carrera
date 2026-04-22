@@ -6,8 +6,8 @@ from typing import List, Literal
 
 
 class Settings(BaseSettings):
-    # Gemini API
-    gemini_api_key: str = ""
+    # Groq API
+    groq_api_key: str = ""
 
     # Firebase
     firebase_credentials_path: str = "../firebase-service-account.json"
@@ -25,8 +25,8 @@ class Settings(BaseSettings):
     # Input validation
     max_message_length: int = 5000
 
-    # Gemini model
-    gemini_model: str = "gemini-2.0-flash"
+    # Groq Llama model
+    groq_model: str = "llama-3.3-70b-versatile"
 
     # Context window (number of recent messages to include)
     context_window_size: int = 20

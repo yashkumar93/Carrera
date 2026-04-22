@@ -1,6 +1,6 @@
 """
 Resume parsing — upload a PDF resume, extract text with pdfplumber,
-use Gemini to extract structured skills/experience/education, and
+use Groq to extract structured skills/experience/education, and
 map extracted skills to career paths.
 """
 import io
@@ -9,18 +9,12 @@ import logging
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from typing import Dict
 
-from google import genai
-
-from app.config import settings
 from app.middleware.auth import get_current_user
 from app.services import firestore_service
+from app.services import llm_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-gemini_client = None
-if settings.gemini_api_key:
-    gemini_client = genai.Client(api_key=settings.gemini_api_key)
 
 MAX_PDF_SIZE_MB = 5
 ALLOWED_TYPES = {"application/pdf", "application/octet-stream"}
@@ -90,9 +84,9 @@ def _extract_text_from_pdf(pdf_bytes: bytes) -> str:
         raise HTTPException(status_code=422, detail=f"Could not extract text from PDF: {exc}")
 
 
-def _parse_resume_with_gemini(resume_text: str) -> Dict:
-    """Send extracted text to Gemini for structured analysis."""
-    if not gemini_client:
+def _parse_resume_with_llm(resume_text: str) -> Dict:
+    """Send extracted text to Groq for structured analysis."""
+    if not llm_service.is_configured():
         raise HTTPException(status_code=503, detail="AI service not configured")
 
     if not resume_text.strip():
@@ -103,11 +97,7 @@ def _parse_resume_with_gemini(resume_text: str) -> Dict:
 
     prompt = RESUME_EXTRACTION_PROMPT.format(resume_text=truncated)
     try:
-        response = gemini_client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt,
-        )
-        raw = response.text.strip()
+        raw = llm_service.generate_text(prompt).strip()
 
         # Strip markdown fences if present
         if raw.startswith("```"):
@@ -117,10 +107,10 @@ def _parse_resume_with_gemini(resume_text: str) -> Dict:
 
         return json.loads(raw)
     except json.JSONDecodeError as exc:
-        logger.error("Gemini returned non-JSON for resume: %s", exc)
+        logger.error("Groq returned non-JSON for resume: %s", exc)
         raise HTTPException(status_code=502, detail="AI response was not valid JSON. Please try again.")
     except Exception as exc:
-        logger.error("Gemini resume parsing failed: %s", exc)
+        logger.error("Groq resume parsing failed: %s", exc)
         raise HTTPException(status_code=502, detail="AI analysis failed. Please try again.")
 
 
@@ -154,8 +144,8 @@ async def parse_resume(
     # Extract text
     resume_text = _extract_text_from_pdf(pdf_bytes)
 
-    # Parse with Gemini
-    analysis = _parse_resume_with_gemini(resume_text)
+    # Parse with Groq
+    analysis = _parse_resume_with_llm(resume_text)
 
     # Auto-update profile with extracted data
     profile_updates = {}

@@ -351,7 +351,7 @@ def get_all_users(limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 def save_resume_analysis(user_id: str, analysis: Dict[str, Any]) -> None:
-    """Store Gemini-extracted resume analysis in the user's profile."""
+    """Store AI-extracted resume analysis in the user's profile."""
     db = get_firestore_client()
     db.collection("users").document(user_id).set(
         {

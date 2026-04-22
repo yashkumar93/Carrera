@@ -19,7 +19,6 @@ from typing import Optional, List, Dict
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from google import genai
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
@@ -28,14 +27,11 @@ from app.middleware.auth import get_current_user
 from app.services import firestore_service
 from app.services import wiki_service
 from app.services import knowledge_base
+from app.services import llm_service
 
 limiter = Limiter(key_func=get_remote_address)
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-gemini_client = None
-if settings.gemini_api_key:
-    gemini_client = genai.Client(api_key=settings.gemini_api_key)
 
 VALID_STAGES = {"discovery", "assessment", "exploration", "roadmap"}
 
@@ -459,15 +455,11 @@ def parse_meta_block(text: str) -> tuple:
     return text, meta_dict
 
 
-async def call_gemini_with_retry(contents: str, max_retries: int = 3) -> str:
+async def call_llm_with_retry(contents: str, max_retries: int = 3) -> str:
     last_error = None
     for attempt in range(max_retries):
         try:
-            response = gemini_client.models.generate_content(
-                model=settings.gemini_model,
-                contents=contents,
-            )
-            return response.text
+            return llm_service.generate_text(contents)
         except Exception as e:
             last_error = e
             if any(k in str(e).lower() for k in ["500", "503", "timeout", "rate", "overloaded", "unavailable"]):
@@ -558,7 +550,7 @@ async def chat(
 ):
     if body.stage and body.stage not in VALID_STAGES:
         raise HTTPException(422, detail=f"Invalid stage. Must be one of: {', '.join(sorted(VALID_STAGES))}")
-    if not gemini_client:
+    if not llm_service.is_configured():
         raise HTTPException(500, detail="AI service is not configured.")
 
     try:
@@ -566,7 +558,7 @@ async def chat(
             user["uid"], body.message, body.stage or "discovery", body.is_onboarding
         )
 
-        ai_response = await call_gemini_with_retry(contents)
+        ai_response = await call_llm_with_retry(contents)
 
         onboarding_complete = None
         profile_data = None
@@ -625,7 +617,7 @@ async def chat_stream(
 ):
     if body.stage and body.stage not in VALID_STAGES:
         raise HTTPException(422, detail=f"Invalid stage. Must be one of: {', '.join(sorted(VALID_STAGES))}")
-    if not gemini_client:
+    if not llm_service.is_configured():
         raise HTTPException(500, detail="AI service is not configured.")
 
     try:
@@ -639,14 +631,9 @@ async def chat_stream(
     async def event_generator():
         full_response = ""
         try:
-            stream = gemini_client.models.generate_content_stream(
-                model=settings.gemini_model,
-                contents=contents,
-            )
-            for chunk in stream:
-                if chunk.text:
-                    full_response += chunk.text
-                    yield f"data: {json.dumps({'token': chunk.text, 'done': False})}\n\n"
+            for token in llm_service.stream_text(contents):
+                full_response += token
+                yield f"data: {json.dumps({'token': token, 'done': False})}\n\n"
 
             # Parse stage + META block (rich component + suggestions) from full response
             cleaned, next_stage = parse_stage_from_response(full_response, current_stage)
