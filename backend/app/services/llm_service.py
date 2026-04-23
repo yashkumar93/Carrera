@@ -7,6 +7,7 @@ vector search stays independent from the chat provider.
 """
 
 import logging
+from importlib import import_module
 from typing import Any, Iterator, List, Optional
 
 from app.config import settings
@@ -27,7 +28,7 @@ def _get_groq_client() -> Any:
         if not settings.groq_api_key:
             raise RuntimeError("Groq API key not configured")
         try:
-            from groq import Groq
+            Groq = import_module("groq").Groq
         except ImportError as exc:
             raise RuntimeError(
                 "groq is not installed. Install backend dependencies to enable text generation."
@@ -78,7 +79,7 @@ def _get_embedding_model():
     global _embedding_model
     if _embedding_model is None:
         try:
-            from sentence_transformers import SentenceTransformer
+            SentenceTransformer = import_module("sentence_transformers").SentenceTransformer
         except ImportError as exc:
             raise RuntimeError(
                 "sentence-transformers is not installed. Install backend dependencies to enable embeddings."

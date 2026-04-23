@@ -466,6 +466,7 @@ async def call_llm_with_retry(contents: str, max_retries: int = 3) -> str:
                 await asyncio.sleep(2 ** attempt)
             else:
                 raise
+    assert last_error is not None
     raise last_error
 
 
@@ -555,7 +556,7 @@ async def chat(
 
     try:
         safe_message, contents, current_stage = _build_prompt(
-            user["uid"], body.message, body.stage or "discovery", body.is_onboarding
+            user["uid"], body.message, body.stage or "discovery", bool(body.is_onboarding)
         )
 
         ai_response = await call_llm_with_retry(contents)
@@ -622,7 +623,7 @@ async def chat_stream(
 
     try:
         safe_message, contents, current_stage = _build_prompt(
-            user["uid"], body.message, body.stage or "discovery", body.is_onboarding
+            user["uid"], body.message, body.stage or "discovery", bool(body.is_onboarding)
         )
     except Exception as exc:
         logger.error("Stream context error: %s", exc)
