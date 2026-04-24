@@ -1,902 +1,1012 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import styled, { createGlobalStyle, ThemeProvider } from 'styled-components';
 import ReactMarkdown from 'react-markdown';
+import {
+  ArrowUp,
+  Brain,
+  Briefcase,
+  ChevronDown,
+  Compass,
+  Download,
+  GitCompareArrows,
+  LogOut,
+  Map as MapIcon,
+  MessageSquare,
+  Paperclip,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
+  Settings,
+  Sparkles,
+  Target,
+  ThumbsDown,
+  ThumbsUp,
+  User as UserIcon,
+  Users,
+} from 'lucide-react';
+
 import apiService from '../lib/api';
 import { signInWithGoogle, signOutUser, onAuthChange } from '../lib/firebase';
-import ClaudeChatInput from './ui/claude-chat-input';
-import { Menu, PanelLeftClose, Trash2, ArrowUp, LogOut, User, ThumbsUp, ThumbsDown, Settings, Sparkles, Download, Compass, ChevronDown } from 'lucide-react';
 import ProfileSettings from './ProfileSettings';
 import RichResponseRenderer from './rich/RichResponseRenderer';
 import AptitudeAssessment from './AptitudeAssessment';
 import CareerComparison from './CareerComparison';
-// Global styles for dark mode
-const GlobalStyle = createGlobalStyle`
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
 
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Roboto', sans-serif;
-    transition: background-color 0.3s ease, color 0.3s ease;
-    background-color: ${props => props.theme.background};
-    color: ${props => props.theme.text};
-  }
-
-  ::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: ${props => props.theme.scrollTrack};
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: ${props => props.theme.scrollThumb};
-    border-radius: 3px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: ${props => props.theme.scrollThumbHover};
-  }
-`;
-
-// Theme configurations
-const lightTheme = {
-  background: '#f5efe6',
-  secondaryBackground: '#efe6da',
-  cardBackground: 'rgba(255, 252, 247, 0.84)',
-  userMessageBackground: 'linear-gradient(135deg, #2f241d 0%, #4c372a 100%)',
-  botMessageBackground: 'rgba(255, 250, 244, 0.92)',
-  text: '#2d241e',
-  secondaryText: '#7a675b',
-  border: 'rgba(97, 73, 58, 0.14)',
-  userMessageText: '#fffaf5',
-  botMessageText: '#2d241e',
-  buttonBackground: '#b85c38',
-  buttonHover: '#9f4d2d',
-  inputBackground: 'rgba(255, 252, 247, 0.95)',
-  inputBorder: 'rgba(120, 92, 74, 0.16)',
-  headerBackground: 'rgba(245, 239, 230, 0.84)',
-  scrollTrack: 'rgba(239, 230, 218, 0.6)',
-  scrollThumb: 'rgba(184, 92, 56, 0.4)',
-  scrollThumbHover: 'rgba(184, 92, 56, 0.6)',
-  shadowLight: '0 10px 30px rgba(77, 53, 40, 0.08)',
-  shadowMedium: '0 18px 50px rgba(77, 53, 40, 0.12)',
-  accent: '#b85c38',
-  accentSoft: 'rgba(184, 92, 56, 0.12)',
+const STAGE_META = {
+  discovery:       { label: 'DISCOVERY',       color: 'var(--peach)',      helper: 'Understanding your background' },
+  assessment:      { label: 'ASSESSMENT',      color: 'var(--butter)',     helper: 'Evaluating your strengths' },
+  analysis:        { label: 'ANALYSIS',        color: 'var(--butter)',     helper: 'Evaluating your strengths' },
+  exploration:     { label: 'EXPLORATION',     color: 'var(--sage)',       helper: 'Exploring career options' },
+  recommendations: { label: 'RECOMMENDATIONS', color: 'var(--sage)',       helper: 'Exploring career options' },
+  roadmap:         { label: 'ROADMAP',         color: 'var(--crr-accent)', helper: 'Building your roadmap' },
+  learning_path:   { label: 'LEARNING PATH',   color: 'var(--crr-accent)', helper: 'Building your roadmap' },
+  action_plan:     { label: 'ACTION PLAN',     color: 'var(--lilac)',      helper: 'Creating next steps' },
+  follow_up:       { label: 'FOLLOW UP',       color: 'var(--sky)',        helper: 'Ongoing support' },
 };
 
-const darkTheme = {
-  background: '#171412',
-  secondaryBackground: '#221d1a',
-  cardBackground: 'rgba(31, 27, 24, 0.88)',
-  userMessageBackground: 'linear-gradient(135deg, #d9794e 0%, #b85c38 100%)',
-  botMessageBackground: 'rgba(33, 29, 26, 0.92)',
-  text: '#f4ebe4',
-  secondaryText: '#b8a79b',
-  border: 'rgba(255, 232, 217, 0.09)',
-  userMessageText: '#fff9f3',
-  botMessageText: '#f4ebe4',
-  buttonBackground: '#d9794e',
-  buttonHover: '#ea865a',
-  inputBackground: 'rgba(30, 25, 22, 0.96)',
-  inputBorder: 'rgba(255, 232, 217, 0.12)',
-  headerBackground: 'rgba(23, 20, 18, 0.78)',
-  scrollTrack: 'rgba(34, 29, 26, 0.8)',
-  scrollThumb: 'rgba(217, 121, 78, 0.34)',
-  scrollThumbHover: 'rgba(217, 121, 78, 0.5)',
-  shadowLight: '0 12px 32px rgba(0, 0, 0, 0.26)',
-  shadowMedium: '0 24px 60px rgba(0, 0, 0, 0.34)',
-  accent: '#d9794e',
-  accentSoft: 'rgba(217, 121, 78, 0.14)',
-};
-
-// Styled components
-const AppContainer = styled.div`
-  height: 100vh;
-  display: flex;
-  flex-direction: row;
-  background: ${props => props.theme.background};
-  transition: all 0.3s ease;
-`;
-
-const Sidebar = styled.aside`
-  width: ${props => props.$isExpanded ? '260px' : '60px'};
-  min-width: ${props => props.$isExpanded ? '260px' : '60px'};
-  height: 100vh;
-  position: fixed;
-  left: 0;
-  top: 0;
-  background: ${props => props.theme.secondaryBackground};
-  border-right: 1px solid ${props => props.theme.border};
-  display: flex;
-  flex-direction: column;
-  transition: all 0.2s ease;
-  overflow: hidden;
-  z-index: 100;
-  
-  @media (max-width: 768px) {
-    width: ${props => props.$isExpanded ? '260px' : '0px'};
-    min-width: ${props => props.$isExpanded ? '260px' : '0px'};
-  }
-`;
-
-const SidebarHeader = styled.div`
-  padding: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: ${props => props.$isExpanded ? 'space-between' : 'center'};
-`;
-
-const SidebarToggleBtn = styled.button`
-  width: 36px;
-  height: 36px;
-  background: transparent;
-  border: 1px solid ${props => props.theme.border};
-  border-radius: 8px;
-  color: ${props => props.theme.text};
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  font-size: 1rem;
-  
-  &:hover {
-    background: ${props => props.theme.border};
-  }
-`;
-
-const SidebarNav = styled.nav`
-  padding: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const NavItem = styled.button`
-  width: 100%;
-  padding: ${props => props.$isExpanded ? '0.625rem 0.75rem' : '0.625rem'};
-  background: ${props => props.$isActive ? props.theme.border : 'transparent'};
-  border: none;
-  border-radius: 8px;
-  color: ${props => props.$isActive ? props.theme.text : props.theme.secondaryText};
-  font-size: 0.875rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: ${props => props.$isExpanded ? 'flex-start' : 'center'};
-  gap: 0.75rem;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background: ${props => props.theme.border};
-    color: ${props => props.theme.text};
-  }
-  
-  .nav-icon {
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.125rem;
-    flex-shrink: 0;
-  }
-  
-  .nav-label {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: ${props => props.$isExpanded ? 'block' : 'none'};
-  }
-`;
-
-const NewChatBtn = styled(NavItem)`
-  background: ${props => props.theme.buttonBackground};
-  color: ${props => props.theme.background};
-  
-  &:hover {
-    background: ${props => props.theme.buttonHover};
-    color: ${props => props.theme.background};
-  }
-  
-  .nav-icon {
-    color: inherit;
-  }
-`;
-
-
-const SidebarFooter = styled.div`
-  padding: 0.75rem;
-  border-top: 1px solid ${props => props.theme.border};
-  margin-top: auto;
-`;
-
-const ProfileSection = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  justify-content: ${props => props.$isExpanded ? 'flex-start' : 'center'};
-  
-  &:hover {
-    background: ${props => props.theme.border};
-  }
-  
-  .profile-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: ${props => props.theme.border};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    flex-shrink: 0;
-    font-size: 0.875rem;
-    
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-  }
-  
-  .profile-info {
-    flex: 1;
-    min-width: 0;
-    display: ${props => props.$isExpanded ? 'block' : 'none'};
-    
-    .profile-name {
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: ${props => props.theme.text};
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    
-    .profile-plan {
-      font-size: 0.75rem;
-      color: ${props => props.theme.secondaryText};
-    }
-  }
-  
-  .expand-icon {
-    display: ${props => props.$isExpanded ? 'block' : 'none'};
-    color: ${props => props.theme.secondaryText};
-    font-size: 0.75rem;
-  }
-`;
-
-const SidebarOverlay = styled.div`
-  display: none;
-  
-  @media (max-width: 768px) {
-    display: ${props => props.$isOpen ? 'block' : 'none'};
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 999;
-  }
-`;
-
-const MainContent = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  margin-left: ${props => props.$sidebarExpanded ? '260px' : '60px'};
-  transition: margin-left 0.2s ease;
-  background: ${props => props.theme.background};
-  
-  @media (max-width: 768px) {
-    margin-left: 0;
-  }
-`;
-
-const Header = styled.header`
-  background: ${props => props.theme.headerBackground};
-  color: ${props => props.theme.text};
-  padding: ${props => props.$minimal ? '0.6rem 1.2rem' : '1rem 1.5rem'};
-  border-bottom: ${props => props.$minimal ? 'none' : `1px solid ${props.theme.border}`};
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  backdrop-filter: ${props => props.$minimal ? 'none' : 'blur(18px)'};
-  position: sticky;
-  top: 0;
-  z-index: 40;
-`;
-
-const HeaderCopy = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const HeaderEyebrow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: ${props => props.theme.accent};
-`;
-
-const Title = styled.h1`
-  font-size: 1.15rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: ${props => props.theme.text};
-`;
-
-const HeaderSubtext = styled.p`
-  font-size: 0.82rem;
-  color: ${props => props.theme.secondaryText};
-`;
-
-const ThemeToggle = styled.button`
-  background: transparent;
-  border: 1px solid ${props => props.theme.border};
-  color: ${props => props.theme.text};
-  padding: 0.5rem 0.8rem;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: 0.875rem;
-
-  &:hover {
-    background: ${props => props.theme.secondaryBackground};
-    border-color: ${props => props.theme.accent};
-  }
-`;
-
-const HeaderRight = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-
-  @media (max-width: 640px) {
-    gap: 0.5rem;
-  }
-`;
-
-const SignInButton = styled.button`
-  background: ${props => props.theme.buttonBackground};
-  color: ${props => props.theme.background};
-  border: none;
-  padding: 0.375rem 0.875rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background: ${props => props.theme.buttonHover};
-  }
-  
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const ChatContainer = styled.main`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  max-width: 1120px;
-  margin: 0 auto;
-  width: 100%;
-  position: relative;
-  padding: 0.35rem 1rem 1rem;
-
-  @media (max-width: 768px) {
-    padding: 0.75rem 0.75rem 0.9rem;
-  }
-`;
-
-const ChatFrame = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: visible;
-  background: transparent;
-  box-shadow: none;
-  backdrop-filter: none;
-`;
-
-const MessagesArea = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  padding: 1rem 1rem 10.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  scroll-behavior: smooth;
-  background: transparent;
-
-  @media (max-width: 640px) {
-    padding: 0.75rem 0.5rem 9.5rem;
-  }
-`;
-
-const MessageBubble = styled.div`
-  width: min(100%, 860px);
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: ${props => props.$isUser ? 'flex-end' : 'flex-start'};
-  gap: 0.45rem;
-
-  @media (max-width: 640px) {
-    gap: 0.35rem;
-  }
-
-  .message-shell {
-    width: 100%;
-    max-width: ${props => props.$isUser ? 'min(72%, 680px)' : '100%'};
-    display: flex;
-    flex-direction: column;
-    align-items: ${props => props.$isUser ? 'flex-end' : 'flex-start'};
-
-    @media (max-width: 640px) {
-      max-width: ${props => props.$isUser ? '90%' : '100%'};
-    }
-  }
-
-  .message-avatar {
-    display: none;
-  }
-  
-  .message-content {
-    background: ${props => props.$isUser ? 'rgba(255, 252, 247, 0.07)' : 'transparent'};
-    color: ${props => props.$isUser ? '#f4ebe4' : '#f6ede5'};
-    padding: ${props => props.$isUser ? '0.9rem 1rem' : '0'};
-    border: 1px solid ${props => props.$isUser ? 'rgba(255, 252, 247, 0.08)' : 'transparent'};
-    border-radius: ${props => props.$isUser ? '16px 16px 4px 16px' : '0'};
-    max-width: 100%;
-    font-size: ${props => props.$isUser ? '0.98rem' : '1.05rem'};
-    line-height: ${props => props.$isUser ? '1.65' : '1.72'};
-    box-shadow: none;
-    font-family: inherit;
-    
-    h1, h2, h3, h4, h5, h6 {
-      margin: 0 0 1rem 0;
-      font-weight: 600;
-      line-height: 1.28;
-      color: #fff7ef;
-      font-family: inherit;
-    }
-    
-    h1 { font-size: 1.9rem; }
-    h2 { font-size: 1.45rem; }
-    h3 { font-size: 1.2rem; }
-    
-    p {
-      margin: 0 0 1rem 0;
-      line-height: ${props => props.$isUser ? '1.65' : '1.72'};
-      
-      &:last-child {
-        margin-bottom: 0;
-      }
-    }
-    
-    ul, ol {
-      margin: 0 0 1rem 0;
-      padding-left: 1.5rem;
-      
-      li {
-        margin-bottom: 0.55rem;
-        line-height: 1.72;
-      }
-    }
-    
-    code {
-      background: rgba(255, 252, 247, 0.08);
-      padding: 0.125rem 0.375rem;
-      border-radius: 4px;
-      font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
-      font-size: 0.9em;
-    }
-    
-    pre {
-      background: rgba(255, 252, 247, 0.04);
-      border: 1px solid rgba(255, 252, 247, 0.08);
-      padding: 1rem 1.1rem;
-      border-radius: 14px;
-      overflow-x: auto;
-      margin: 1rem 0;
-      
-      code {
-        background: none;
-        padding: 0;
-      }
-    }
-    
-    strong {
-      font-weight: 600;
-    }
-  }
-  
-  .timestamp {
-    font-size: 0.72rem;
-    color: ${props => props.theme.secondaryText};
-    margin-top: 0.1rem;
-    padding: 0;
-    display: ${props => props.$isUser ? 'block' : 'none'};
-  }
-`;
-
-const TypingIndicator = styled.div`
-  width: min(100%, 860px);
-  margin: 0 auto;
-  align-self: center;
-  
-  .typing-content {
-    background: transparent;
-    color: #bca999;
-    padding: 0;
-    border-radius: 0;
-    border: none;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    box-shadow: none;
-    font-size: 0.94rem;
-    
-    .dots {
-      display: flex;
-      gap: 0.25rem;
-      
-      .dot {
-        width: 6px;
-        height: 6px;
-        background: ${props => props.theme.secondaryText};
-        border-radius: 50%;
-        animation: typing 1.4s infinite ease-in-out;
-        
-        &:nth-child(1) { animation-delay: 0s; }
-        &:nth-child(2) { animation-delay: 0.2s; }
-        &:nth-child(3) { animation-delay: 0.4s; }
-      }
-    }
-  }
-  
-  @keyframes typing {
-    0%, 60%, 100% {
-      transform: translateY(0);
-      opacity: 0.4;
-    }
-    30% {
-      transform: translateY(-10px);
-      opacity: 1;
-    }
-  }
-`;
-
-const InputSection = styled.div`
-  position: sticky;
-  bottom: 0;
-  padding: 0 1rem 1rem;
-  border-top: none;
-  background: linear-gradient(
-    180deg,
-    rgba(23, 20, 18, 0) 0%,
-    rgba(23, 20, 18, 0.84) 24%,
-    rgba(23, 20, 18, 0.94) 60%,
-    rgba(23, 20, 18, 1) 100%
-  );
-  
-  .input-container {
-    max-width: 100%;
-    margin: 0 auto;
-    display: flex;
-    gap: 0.625rem;
-    align-items: flex-end;
-  }
-`;
-
-const MessageInput = styled.textarea`
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: #f4ebe4;
-  padding: 0.7rem 0.35rem 0.7rem 0;
-  border-radius: 1.4rem;
-  resize: none;
-  min-height: 54px;
-  max-height: 6rem;  /* ~4 visible lines at 1.5 line-height; scrolls internally */
-  overflow-y: auto;
-  font-family: inherit;
-  font-size: 1rem;
-  line-height: 1.5;
-  transition: all 0.2s ease;
-  
-  &:focus {
-    outline: none;
-  }
-  
-  &::placeholder {
-    color: ${props => props.theme.secondaryText};
-  }
-`;
-
-const SendButton = styled.button`
-  background: transparent;
-  color: #f3e7db;
-  border: none;
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: none;
-  
-  &:hover:not(:disabled) {
-    background: rgba(255, 252, 247, 0.08);
-    transform: translateY(-1px);
-  }
-  
-  &:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-`;
-
-const StagePill = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  align-self: center;
-  margin: 0 0 1rem 0;
-  padding: 0.25rem 0;
-  border-radius: 999px;
-  font-size: 0.74rem;
-  font-weight: 600;
-  color: #9f8b7d;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-
-  @media (max-width: 640px) {
-    margin: 0 0 0.8rem 0;
-  }
-`;
-
-const ComposerCard = styled.div`
-  max-width: 944px;
-  margin: 0 auto;
-  padding: 0.9rem 1.1rem 0.8rem;
-  border-radius: 1.75rem;
-  background: rgba(49, 45, 40, 0.92);
-  border: 1px solid rgba(255, 252, 247, 0.12);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
-`;
-
-const ComposerFooter = styled.div`
-  margin-top: 0.55rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0 0.2rem;
-  font-size: 0.72rem;
-  color: #b8a79b;
-
-  @media (max-width: 640px) {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-`;
-
-const HelperPill = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.2rem 0.4rem;
-  border-radius: 999px;
-  background: transparent;
-  border: none;
-`;
-
-const FeedbackBar = styled.div`
-  display: none;
-  gap: 0.375rem;
-  margin-top: 0.5rem;
-  align-items: center;
-
-  /* Show on hover of the parent message-shell */
-  .message-shell:hover & {
-    display: flex;
-  }
-`;
-
-const FeedbackButton = styled.button`
-  background: ${props => props.$active ? props.$activeColorBg : 'transparent'};
-  border: 1px solid ${props => props.$active ? props.$activeColor : props.theme.border};
-  border-radius: 999px;
-  padding: 0.32rem 0.58rem;
-  cursor: ${props => props.$disabled ? 'default' : 'pointer'};
-  color: ${props => props.$active ? props.$activeColor : props.theme.secondaryText};
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.75rem;
-  transition: all 0.15s ease;
-  pointer-events: ${props => props.$disabled ? 'none' : 'auto'};
-`;
-
-const JumpToLatestButton = styled.button`
-  position: sticky;
-  bottom: 0.75rem;
-  align-self: center;
-  margin-left: auto;
-  margin-right: auto;
-  background: rgba(49, 45, 40, 0.94);
-  color: #fff8f3;
-  border: none;
-  border-radius: 999px;
-  padding: 0.52rem 0.95rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: ${props => props.theme.shadowMedium};
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  z-index: 10;
-  backdrop-filter: blur(8px);
-  transition: transform 0.15s ease, opacity 0.15s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
-`;
-
-// Placeholder text rotates based on the current counseling stage.
 const STAGE_PLACEHOLDERS = {
-  discovery:   'Tell me about your interests, education, or career goals...',
-  assessment:  'Share your skills, strengths, or what you want to improve...',
-  exploration: 'Ask about any career, compare paths, or explore options...',
-  roadmap:     'Ask about courses, certifications, or next steps...',
+  discovery:   'Tell me about your interests, education, or career goals…',
+  assessment:  'Share your skills, strengths, or what you want to improve…',
+  exploration: 'Ask about any career, compare paths, or explore options…',
+  roadmap:     'Ask about courses, certifications, or next steps…',
 };
 
-const ChatInterface = () => {
-  const isDarkMode = true;
+const WELCOME_MD = `# Welcome to Carrera
+
+I'm your quiet career mentor. We'll talk through what you want, map the skills you need, and build the path — one honest step at a time.
+
+**What we can explore together:**
+- Your strengths and what gives you energy
+- Honest career matches with real tradeoffs
+- A personalized learning roadmap
+- Practical next steps you can actually take
+
+What's been on your mind lately?`;
+
+const STARTER_SUGGESTIONS = [
+  'I want to transition to a new career',
+  'Help me advance in my current role',
+  "I'm a recent graduate seeking direction",
+  "I'm re-entering the workforce",
+];
+
+/* ---------- Logo ---------- */
+function Logo({ compact }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: 10,
+          background: 'linear-gradient(135deg, var(--crr-accent), var(--peach))',
+          display: 'grid',
+          placeItems: 'center',
+          boxShadow: '0 2px 8px -2px var(--crr-accent)',
+          flexShrink: 0,
+        }}
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+        >
+          <path d="M12 3v18" />
+          <path d="m5 10 7-7 7 7" />
+          <circle cx="12" cy="17" r="2" />
+        </svg>
+      </div>
+      {!compact && (
+        <span className="display" style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.02em' }}>
+          carrera
+        </span>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Sidebar ---------- */
+function Sidebar({
+  collapsed,
+  onToggle,
+  user,
+  onSignIn,
+  onSignOut,
+  onOpenSettings,
+  onOpenComparison,
+  onNewConversation,
+  canClear,
+}) {
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef(null);
+  const w = collapsed ? 68 : 260;
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const navItems = [
+    { k: 'chat', label: 'Chat', icon: <MessageSquare size={18} />, active: true },
+    { k: 'roadmap', label: 'Roadmap', icon: <MapIcon size={18} />, href: '/roadmap' },
+    { k: 'memory', label: 'Memory', icon: <Brain size={18} />, href: '/memory' },
+    { k: 'aptitude', label: 'Aptitude', icon: <Target size={18} />, action: 'aptitude' },
+    { k: 'compare', label: 'Compare', icon: <GitCompareArrows size={18} />, action: 'compare' },
+    { k: 'community', label: 'Community', icon: <Users size={18} />, href: '/community' },
+    { k: 'employers', label: 'Employers', icon: <Briefcase size={18} />, href: '/employers' },
+  ];
+
+  return (
+    <aside
+      style={{
+        width: w,
+        background: 'var(--crr-surface-3)',
+        borderRight: '1px solid var(--crr-line)',
+        display: 'flex',
+        flexDirection: 'column',
+        transition: 'width 0.3s cubic-bezier(.2,.7,.2,1)',
+        flexShrink: 0,
+        position: 'relative',
+      }}
+    >
+      <div
+        style={{
+          padding: collapsed ? '16px 14px' : '18px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          height: 64,
+          borderBottom: '1px solid var(--crr-line)',
+        }}
+      >
+        <Logo compact={collapsed} />
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          style={{
+            marginLeft: 'auto',
+            width: 30,
+            height: 30,
+            borderRadius: 8,
+            display: 'grid',
+            placeItems: 'center',
+            color: 'var(--crr-text-faint)',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--crr-surface-2)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+        >
+          {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+        </button>
+      </div>
+
+      <div style={{ padding: '14px 14px 6px' }}>
+        <button
+          type="button"
+          onClick={onNewConversation}
+          disabled={!canClear}
+          className="crr-btn crr-btn-primary"
+          style={{
+            width: '100%',
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            padding: collapsed ? '10px' : '10px 16px',
+            fontSize: 14,
+            opacity: canClear ? 1 : 0.6,
+            cursor: canClear ? 'pointer' : 'not-allowed',
+          }}
+        >
+          <Plus size={16} strokeWidth={2.4} />
+          {!collapsed && <span>New conversation</span>}
+        </button>
+      </div>
+
+      <nav style={{ padding: '10px', flex: 1, display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
+        {navItems.map((it) => {
+          const Element = it.href ? 'a' : 'button';
+          const elProps = it.href
+            ? { href: it.href }
+            : {
+                type: 'button',
+                onClick: () => {
+                  if (it.action === 'aptitude') window.dispatchEvent(new CustomEvent('carrera:open-aptitude'));
+                  if (it.action === 'compare') onOpenComparison();
+                },
+              };
+          return (
+            <Element
+              key={it.k}
+              {...elProps}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: collapsed ? '10px' : '10px 14px',
+                borderRadius: 10,
+                justifyContent: collapsed ? 'center' : 'flex-start',
+                background: it.active ? 'var(--crr-surface-2)' : 'transparent',
+                color: it.active ? 'var(--crr-text)' : 'var(--crr-text-dim)',
+                fontSize: 14,
+                fontWeight: it.active ? 500 : 400,
+                position: 'relative',
+                transition: 'background 0.15s ease, color 0.15s ease',
+                textDecoration: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+              onMouseEnter={(e) => {
+                if (!it.active) e.currentTarget.style.background = 'var(--crr-surface-2)';
+              }}
+              onMouseLeave={(e) => {
+                if (!it.active) e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              {it.active && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 8,
+                    bottom: 8,
+                    width: 3,
+                    background: 'var(--crr-accent)',
+                    borderRadius: 2,
+                  }}
+                />
+              )}
+              {it.icon}
+              {!collapsed && <span>{it.label}</span>}
+            </Element>
+          );
+        })}
+      </nav>
+
+      <div
+        ref={profileRef}
+        style={{
+          padding: '12px 14px',
+          borderTop: '1px solid var(--crr-line)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          position: 'relative',
+        }}
+      >
+        {user ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setProfileOpen((v) => !v)}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+                minWidth: 0,
+                fontFamily: 'inherit',
+                color: 'inherit',
+              }}
+            >
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, var(--peach), var(--sage))',
+                  display: 'grid',
+                  placeItems: 'center',
+                  color: '#fff',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  flexShrink: 0,
+                  overflow: 'hidden',
+                }}
+              >
+                {user.photoURL ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={user.photoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  (user.displayName || user.email || 'U').charAt(0).toUpperCase()
+                )}
+              </div>
+              {!collapsed && (
+                <>
+                  <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 500,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {user.displayName || 'You'}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--crr-text-faint)' }}>{user.email || 'Signed in'}</div>
+                  </div>
+                  <ChevronDown
+                    size={14}
+                    style={{
+                      color: 'var(--crr-text-faint)',
+                      transform: profileOpen ? 'rotate(180deg)' : 'none',
+                      transition: 'transform 0.15s ease',
+                    }}
+                  />
+                </>
+              )}
+            </button>
+
+            {profileOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: 14,
+                  right: 14,
+                  marginBottom: 8,
+                  background: 'var(--crr-surface-2)',
+                  border: '1px solid var(--crr-line)',
+                  borderRadius: 12,
+                  padding: 6,
+                  boxShadow: 'var(--crr-shadow)',
+                  zIndex: 20,
+                }}
+              >
+                <MenuRow icon={<Settings size={15} />} label="Profile settings" onClick={() => { setProfileOpen(false); onOpenSettings(); }} />
+                <MenuRow icon={<GitCompareArrows size={15} />} label="Compare careers" onClick={() => { setProfileOpen(false); onOpenComparison(); }} />
+                <MenuRow icon={<Brain size={15} />} label="My memory" href="/memory" />
+                <MenuRow icon={<MapIcon size={15} />} label="Learning roadmap" href="/roadmap" />
+                <div style={{ height: 1, background: 'var(--crr-line)', margin: '4px 0' }} />
+                <MenuRow icon={<LogOut size={15} />} label="Log out" onClick={() => { setProfileOpen(false); onSignOut(); }} />
+              </div>
+            )}
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={onSignIn}
+            className="crr-btn crr-btn-primary"
+            style={{ width: '100%', justifyContent: 'center', padding: '10px 14px', fontSize: 13 }}
+          >
+            {collapsed ? <UserIcon size={16} /> : 'Sign in with Google'}
+          </button>
+        )}
+      </div>
+    </aside>
+  );
+}
+
+function MenuRow({ icon, label, onClick, href }) {
+  const common = {
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '8px 10px',
+    borderRadius: 8,
+    background: 'transparent',
+    border: 'none',
+    color: 'var(--crr-text)',
+    fontSize: 13,
+    cursor: 'pointer',
+    textAlign: 'left',
+    textDecoration: 'none',
+    fontFamily: 'inherit',
+  };
+  const enter = (e) => (e.currentTarget.style.background = 'var(--crr-surface-3)');
+  const leave = (e) => (e.currentTarget.style.background = 'transparent');
+  if (href) {
+    return (
+      <a href={href} style={common} onMouseEnter={enter} onMouseLeave={leave}>
+        {icon} {label}
+      </a>
+    );
+  }
+  return (
+    <button type="button" onClick={onClick} style={common} onMouseEnter={enter} onMouseLeave={leave}>
+      {icon} {label}
+    </button>
+  );
+}
+
+/* ---------- Chat header ---------- */
+function ChatHeader({ stage, onExport, exporting, disableExport }) {
+  const s = STAGE_META[stage] || STAGE_META.discovery;
+  return (
+    <div
+      style={{
+        height: 64,
+        padding: '0 28px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+        borderBottom: '1px solid var(--crr-line)',
+        background: 'var(--crr-surface)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+      }}
+    >
+      <div
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '5px 12px 5px 8px',
+          borderRadius: 999,
+          background: 'var(--crr-surface-3)',
+          border: '1px solid var(--crr-line)',
+        }}
+      >
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.color }} />
+        <span className="eyebrow" style={{ fontSize: 11 }}>
+          {s.label}
+        </span>
+      </div>
+      <div style={{ fontSize: 15, fontWeight: 500 }}>Your career conversation</div>
+      <span style={{ fontSize: 13, color: 'var(--crr-text-faint)' }}>· {s.helper}</span>
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <button
+          type="button"
+          onClick={onExport}
+          disabled={disableExport || exporting}
+          className="crr-btn crr-btn-ghost"
+          style={{
+            padding: '8px 12px',
+            fontSize: 13,
+            opacity: disableExport || exporting ? 0.5 : 1,
+            cursor: disableExport || exporting ? 'not-allowed' : 'pointer',
+          }}
+          aria-label="Export session as PDF"
+        >
+          <Download size={14} /> {exporting ? 'Exporting…' : 'Export'}
+        </button>
+        <a
+          href="/roadmap"
+          className="crr-btn"
+          style={{
+            padding: '7px 14px',
+            fontSize: 13,
+            border: '1px solid var(--crr-line-strong)',
+            background: 'var(--crr-surface-2)',
+            color: 'var(--crr-text)',
+            textDecoration: 'none',
+          }}
+        >
+          View roadmap
+        </a>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Messages ---------- */
+function BotMessage({ message, onSuggest, feedback, onFeedback, canFeedback, onRichSuggest }) {
+  const [hovered, setHovered] = useState(false);
+  const displayContent = (message.content || '').split('<<META>>')[0];
+  return (
+    <div
+      style={{
+        display: 'flex',
+        gap: 12,
+        alignItems: 'flex-start',
+        maxWidth: 880,
+        animation: 'crr-riseIn 0.6s cubic-bezier(.2,.7,.2,1) both',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 10,
+          background: 'linear-gradient(135deg, var(--crr-accent), var(--peach))',
+          display: 'grid',
+          placeItems: 'center',
+          color: '#fff',
+          flexShrink: 0,
+          marginTop: 2,
+        }}
+      >
+        <Sparkles size={14} strokeWidth={2.4} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {displayContent && (
+          <div
+            style={{
+              fontSize: 15.5,
+              color: 'var(--crr-text)',
+              lineHeight: 1.6,
+              maxWidth: 620,
+            }}
+          >
+            <ReactMarkdown>{displayContent}</ReactMarkdown>
+          </div>
+        )}
+
+        {message.richComponent && (
+          <div style={{ marginTop: displayContent ? 14 : 0 }}>
+            <RichResponseRenderer component={message.richComponent} onSuggestionClick={onRichSuggest} />
+          </div>
+        )}
+
+        {Array.isArray(message.suggestions) && message.suggestions.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+            {message.suggestions.map((chip, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => onSuggest(chip)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 999,
+                  background: 'var(--crr-surface-2)',
+                  border: '1px solid var(--crr-line)',
+                  fontSize: 12.5,
+                  color: 'var(--crr-text-dim)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  fontFamily: 'inherit',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--crr-accent)';
+                  e.currentTarget.style.color = 'var(--crr-accent)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--crr-line)';
+                  e.currentTarget.style.color = 'var(--crr-text-dim)';
+                }}
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {canFeedback && (
+          <div
+            style={{
+              display: 'flex',
+              gap: 4,
+              marginTop: 10,
+              opacity: hovered || feedback ? 1 : 0,
+              transition: 'opacity 0.2s ease',
+            }}
+          >
+            <FeedbackButton
+              active={feedback === 'thumbs_up'}
+              onClick={() => onFeedback('thumbs_up')}
+              title="Helpful"
+              disabled={Boolean(feedback)}
+            >
+              <ThumbsUp size={13} />
+            </FeedbackButton>
+            <FeedbackButton
+              active={feedback === 'thumbs_down'}
+              onClick={() => onFeedback('thumbs_down')}
+              title="Not helpful"
+              disabled={Boolean(feedback)}
+            >
+              <ThumbsDown size={13} />
+            </FeedbackButton>
+            {feedback && (
+              <span style={{ fontSize: 11, color: 'var(--crr-text-faint)', alignSelf: 'center', marginLeft: 4 }}>
+                Feedback recorded
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FeedbackButton({ active, onClick, title, disabled, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      aria-label={title}
+      style={{
+        padding: 6,
+        borderRadius: 8,
+        background: active ? 'var(--crr-surface-3)' : 'transparent',
+        border: 'none',
+        color: active ? 'var(--crr-accent)' : 'var(--crr-text-faint)',
+        cursor: disabled && !active ? 'not-allowed' : 'pointer',
+        display: 'inline-flex',
+        alignItems: 'center',
+        fontFamily: 'inherit',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function UserMessage({ text }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'flex-end',
+        maxWidth: 880,
+        animation: 'crr-riseIn 0.5s cubic-bezier(.2,.7,.2,1) both',
+      }}
+    >
+      <div
+        style={{
+          padding: '12px 18px',
+          borderRadius: 20,
+          borderBottomRightRadius: 6,
+          background: 'var(--crr-surface-3)',
+          border: '1px solid var(--crr-line)',
+          maxWidth: '70%',
+          fontSize: 15,
+          lineHeight: 1.55,
+          whiteSpace: 'pre-wrap',
+        }}
+      >
+        {text}
+      </div>
+    </div>
+  );
+}
+
+function TypingDots() {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        gap: 12,
+        alignItems: 'center',
+        animation: 'crr-riseIn 0.4s cubic-bezier(.2,.7,.2,1) both',
+      }}
+    >
+      <div
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 10,
+          background: 'linear-gradient(135deg, var(--crr-accent), var(--peach))',
+          display: 'grid',
+          placeItems: 'center',
+          color: '#fff',
+          flexShrink: 0,
+        }}
+      >
+        <Sparkles size={14} strokeWidth={2.4} />
+      </div>
+      <div
+        className="bubble bubble-bot"
+        style={{ display: 'inline-flex', gap: 4, alignItems: 'center', padding: '14px 18px' }}
+      >
+        <span style={{ fontSize: 13, color: 'var(--crr-text-dim)', marginRight: 6 }}>Thinking</span>
+        <Dot delay={0} />
+        <Dot delay={0.15} />
+        <Dot delay={0.3} />
+      </div>
+    </div>
+  );
+}
+
+function Dot({ delay }) {
+  return (
+    <span
+      style={{
+        width: 6,
+        height: 6,
+        borderRadius: '50%',
+        background: 'var(--crr-text-faint)',
+        animation: 'crr-tping 1.2s ease-in-out infinite',
+        animationDelay: `${delay}s`,
+      }}
+    />
+  );
+}
+
+/* ---------- Composer ---------- */
+function Composer({ value, onChange, onSend, disabled, stage }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.style.height = 'auto';
+      ref.current.style.height = `${Math.min(ref.current.scrollHeight, 180)}px`;
+    }
+  }, [value]);
+
+  const placeholder = STAGE_PLACEHOLDERS[stage] || STAGE_PLACEHOLDERS.discovery;
+  const canSend = !disabled && value.trim().length > 0;
+
+  return (
+    <div
+      style={{
+        padding: '16px 28px 24px',
+        background: 'linear-gradient(180deg, transparent, var(--crr-surface) 30%)',
+        position: 'sticky',
+        bottom: 0,
+      }}
+    >
+      <div style={{ maxWidth: 880, margin: '0 auto' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-end',
+            gap: 10,
+            padding: '12px 14px',
+            borderRadius: 22,
+            background: 'var(--crr-surface-2)',
+            border: '1px solid var(--crr-line)',
+            boxShadow: 'var(--crr-shadow-sm)',
+          }}
+        >
+          <button
+            type="button"
+            style={{
+              color: 'var(--crr-text-faint)',
+              padding: 8,
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+            aria-label="Attach file"
+          >
+            <Paperclip size={18} />
+          </button>
+          <textarea
+            ref={ref}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (canSend) onSend();
+              }
+            }}
+            placeholder={placeholder}
+            rows={1}
+            disabled={disabled}
+            style={{
+              flex: 1,
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              color: 'var(--crr-text)',
+              fontSize: 15,
+              resize: 'none',
+              minHeight: 24,
+              maxHeight: 180,
+              padding: '8px 0',
+              fontFamily: 'inherit',
+              lineHeight: 1.5,
+            }}
+          />
+          <button
+            type="button"
+            onClick={onSend}
+            disabled={!canSend}
+            aria-label="Send message"
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              background: canSend ? 'var(--crr-accent)' : 'var(--crr-surface-3)',
+              color: canSend ? '#fff' : 'var(--crr-text-faint)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 0.15s ease',
+              flexShrink: 0,
+              border: 'none',
+              cursor: canSend ? 'pointer' : 'not-allowed',
+            }}
+          >
+            <ArrowUp size={16} strokeWidth={2.4} />
+          </button>
+        </div>
+        <div style={{ textAlign: 'center', marginTop: 10, fontSize: 11.5, color: 'var(--crr-text-faint)' }}>
+          Carrera learns from this conversation. You own your data · Press Enter to send
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- New conversation view ---------- */
+function NewChatView({ userName, onSend }) {
+  const [text, setText] = useState('');
+  const send = () => {
+    if (!text.trim()) return;
+    onSend(text.trim());
+    setText('');
+  };
+  return (
+    <div
+      style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '0 28px 40px',
+        position: 'relative',
+      }}
+    >
+      <div className="glow-field">
+        <div className="crr-glow peach" style={{ width: 420, height: 420, left: '10%', top: '10%' }} />
+        <div className="crr-glow sage" style={{ width: 360, height: 360, right: '10%', bottom: '10%', animationDelay: '3s' }} />
+      </div>
+      <div style={{ position: 'relative', textAlign: 'center', maxWidth: 620, width: '100%' }}>
+        <div className="eyebrow" style={{ marginBottom: 14 }}>
+          A quiet place to think
+        </div>
+        <h1
+          className="display"
+          style={{ fontSize: 48, fontWeight: 400, letterSpacing: '-0.03em', lineHeight: 1.08, margin: 0 }}
+        >
+          Hi {userName || 'there'}, what&apos;s{' '}
+          <span className="serif-accent" style={{ color: 'var(--crr-accent)' }}>
+            on your mind
+          </span>
+          ?
+        </h1>
+        <p style={{ fontSize: 16, color: 'var(--crr-text-dim)', marginTop: 14, lineHeight: 1.55 }}>
+          We&apos;ll talk through what you want, map the skills you need, and build the path — one honest step at a time.
+        </p>
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-end',
+            gap: 10,
+            padding: '14px 16px',
+            borderRadius: 22,
+            background: 'var(--crr-surface-2)',
+            border: '1px solid var(--crr-line)',
+            boxShadow: 'var(--crr-shadow)',
+            marginTop: 28,
+          }}
+        >
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
+            placeholder="Tell me what's been on your mind…"
+            rows={1}
+            style={{
+              flex: 1,
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              color: 'var(--crr-text)',
+              fontSize: 15,
+              resize: 'none',
+              minHeight: 24,
+              maxHeight: 180,
+              fontFamily: 'inherit',
+              lineHeight: 1.5,
+              padding: '6px 0',
+            }}
+          />
+          <button
+            type="button"
+            onClick={send}
+            disabled={!text.trim()}
+            aria-label="Begin"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              background: text.trim() ? 'var(--crr-accent)' : 'var(--crr-surface-3)',
+              color: text.trim() ? '#fff' : 'var(--crr-text-faint)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: 'none',
+              cursor: text.trim() ? 'pointer' : 'not-allowed',
+            }}
+          >
+            <ArrowUp size={18} strokeWidth={2.4} />
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16, justifyContent: 'center' }}>
+          {STARTER_SUGGESTIONS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onSend(s)}
+              style={{
+                padding: '8px 14px',
+                borderRadius: 999,
+                background: 'var(--crr-surface-2)',
+                border: '1px solid var(--crr-line)',
+                fontSize: 13,
+                color: 'var(--crr-text-dim)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                fontFamily: 'inherit',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--crr-accent)';
+                e.currentTarget.style.color = 'var(--crr-accent)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--crr-line)';
+                e.currentTarget.style.color = 'var(--crr-text-dim)';
+              }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Main interface ---------- */
+export default function ChatInterface() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [currentStage, setCurrentStage] = useState('discovery');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Auth state
   const [user, setUser] = useState(null);
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-
-  // Sidebar state
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-
-  // New chat view state
+  const [collapsed, setCollapsed] = useState(false);
   const [showNewChatView, setShowNewChatView] = useState(true);
-
-  // Feedback state: messageId → 'thumbs_up' | 'thumbs_down'
   const [messageFeedback, setMessageFeedback] = useState({});
-
-  // Profile settings view
   const [showSettings, setShowSettings] = useState(false);
-
-  // Aptitude assessment modal
   const [showAssessment, setShowAssessment] = useState(false);
-
-  // Career comparison modal
   const [showComparison, setShowComparison] = useState(false);
-
-  // PDF export state
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [isNearBottom, setIsNearBottom] = useState(true);
 
   const messagesEndRef = useRef(null);
   const messagesAreaRef = useRef(null);
-  const inputRef = useRef(null);
-  const profileDropdownRef = useRef(null);
-
-  // Jump-to-latest pill: only show when user has scrolled up meaningfully
-  const [isNearBottom, setIsNearBottom] = useState(true);
-
-  // Mobile swipe-to-open sidebar
-  const touchStartX = useRef(null);
-  const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
-  const handleTouchEnd = (e) => {
-    if (touchStartX.current == null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    touchStartX.current = null;
-    // Swipe right from left edge → open sidebar
-    if (dx > 60 && e.changedTouches[0].clientX < 300 && !mobileSidebarOpen) {
-      setMobileSidebarOpen(true);
-    }
-    // Swipe left → close sidebar
-    if (dx < -60 && mobileSidebarOpen) {
-      setMobileSidebarOpen(false);
-    }
-  };
 
   useEffect(() => {
-    // Welcome message
-    setMessages([{
-      id: 1,
-      content: `# Welcome to Your AI Career Counselor
-
-I'm here to guide you through your career journey with personalized insights and actionable advice.
-
-**What I can help you with:**
-- **Discover** your strengths and interests
-- **Analyze** your career potential
-- **Recommend** suitable career paths
-- **Create** personalized learning roadmaps
-- **Plan** actionable next steps
-
-Let's start by understanding your current situation. What brings you here today?`,
-      isUser: false,
-      timestamp: Date.now()
-    }]);
-
-    // Initial suggestions are attached to the welcome message directly
-    setMessages(prev => prev.map((m, i) =>
-      i === prev.length - 1
-        ? { ...m, suggestions: [
-            "I want to transition to a new career",
-            "Help me advance in my current role",
-            "I'm a recent graduate seeking direction",
-            "I'm re-entering the workforce",
-          ]}
-        : m
-    ));
+    setMessages([
+      {
+        id: 'welcome',
+        content: WELCOME_MD,
+        isUser: false,
+        timestamp: Date.now(),
+        suggestions: STARTER_SUGGESTIONS,
+      },
+    ]);
   }, []);
 
   useEffect(() => {
-    // Only auto-scroll when the user is already at the bottom. If they've scrolled up
-    // to read history, leave their scroll position alone — the "Jump to latest" pill
-    // will appear instead.
-    if (isNearBottom) scrollToBottom();
+    if (isNearBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages, isNearBottom]);
 
-  useEffect(() => {
-    // Auto-resize textarea
-    if (inputRef.current) {
-      inputRef.current.style.height = 'auto';
-      inputRef.current.style.height = inputRef.current.scrollHeight + 'px';
-    }
-  }, [inputValue]);
-
-  // Auth state listener — load single persistent chat history
   useEffect(() => {
     const unsubscribe = onAuthChange(async (firebaseUser) => {
       if (firebaseUser) {
@@ -904,53 +1014,37 @@ Let's start by understanding your current situation. What brings you here today?
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL
+          photoURL: firebaseUser.photoURL,
         });
-
-        // Load persistent chat history for this user
         try {
           const history = await apiService.getChatHistory();
-          if (history.messages && history.messages.length > 0) {
-            const historicalMessages = history.messages.map((msg, i) => ({
+          if (history?.messages?.length) {
+            const historical = history.messages.map((msg, i) => ({
               id: msg.id || `hist-${i}`,
               content: msg.content,
               isUser: msg.isUser,
               timestamp: msg.createdAt ? new Date(msg.createdAt).getTime() : Date.now(),
             }));
-
-            setMessages(historicalMessages);
+            setMessages(historical);
             setCurrentStage(history.stage || 'discovery');
             setShowNewChatView(false);
           }
-        } catch (error) {
-          console.error('Error loading chat history:', error);
+        } catch (err) {
+          console.error('Error loading chat history:', err);
         }
       } else {
         setUser(null);
       }
     });
-
     return () => unsubscribe();
   }, []);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
-        setShowProfileDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    const opener = () => setShowAssessment(true);
+    window.addEventListener('carrera:open-aptitude', opener);
+    return () => window.removeEventListener('carrera:open-aptitude', opener);
   }, []);
 
-  const scrollToBottom = (behavior = 'smooth') => {
-    messagesEndRef.current?.scrollIntoView({ behavior });
-  };
-
-  // Track whether the user is near the bottom of the message list.
-  // Auto-scroll only fires when they are (so scrolling up to read history isn't interrupted).
   const handleMessagesScroll = () => {
     const el = messagesAreaRef.current;
     if (!el) return;
@@ -961,50 +1055,44 @@ Let's start by understanding your current situation. What brings you here today?
   const handleSignIn = async () => {
     try {
       await signInWithGoogle();
-    } catch (error) {
-      console.error('Sign-in failed:', error);
+    } catch (err) {
+      console.error('Sign-in failed:', err);
     }
   };
 
   const handleSignOut = async () => {
     try {
       await signOutUser();
-      setShowProfileDropdown(false);
-    } catch (error) {
-      console.error('Sign-out failed:', error);
+    } catch (err) {
+      console.error('Sign-out failed:', err);
     }
   };
 
-  const formatTime = (timestamp) => {
-    return new Date(timestamp).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const handleSendMessage = async (message = inputValue) => {
+  const handleSendMessage = async (override) => {
+    const message = typeof override === 'string' ? override : inputValue;
     if (!message.trim() || isLoading) return;
+
+    if (showNewChatView) setShowNewChatView(false);
 
     const userMessage = {
       id: Date.now(),
       content: message,
       isUser: true,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
 
-    // Create placeholder for bot message
     const botMessageId = Date.now() + 1;
     const botMessage = {
       id: botMessageId,
       content: '',
       isUser: false,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
-    setMessages(prev => [...prev, botMessage]);
+    setMessages((prev) => [...prev, botMessage]);
 
     try {
       let fullResponse = '';
@@ -1015,74 +1103,60 @@ Let's start by understanding your current situation. What brings you here today?
         currentStage,
         (token) => {
           fullResponse += token;
-          setMessages(prev => prev.map(msg =>
-            msg.id === botMessageId ? { ...msg, content: fullResponse } : msg
-          ));
+          setMessages((prev) =>
+            prev.map((msg) => (msg.id === botMessageId ? { ...msg, content: fullResponse } : msg)),
+          );
         },
-        (data) => { // onComplete
+        (data) => {
           const { stage, suggestions, rich_component, clean_text } = data;
           if (stage) setCurrentStage(stage);
-          // Replace bot message content with the server-cleaned text (META stripped)
-          // and attach rich component + per-message suggestions.
-          setMessages(prev => prev.map(msg =>
-            msg.id === botMessageId
-              ? {
-                  ...msg,
-                  content: typeof clean_text === 'string' ? clean_text : msg.content,
-                  richComponent: rich_component || null,
-                  suggestions: suggestions || [],
-                }
-              : msg
-          ));
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === botMessageId
+                ? {
+                    ...msg,
+                    content: typeof clean_text === 'string' ? clean_text : msg.content,
+                    richComponent: rich_component || null,
+                    suggestions: suggestions || [],
+                  }
+                : msg,
+            ),
+          );
         },
         (error) => {
           throw error;
-        }
+        },
       );
-
     } catch (error) {
-      console.error('Chat Error:', error);
+      console.error('Chat error:', error);
       const errorMessage = `I apologize, but I encountered an error: ${error.message}. Please try again.`;
-
-      setMessages(prev => prev.map(msg =>
-        msg.id === botMessageId
-          ? { ...msg, content: msg.content + '\n\n' + errorMessage }
-          : msg
-      ));
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === botMessageId ? { ...msg, content: (msg.content || '') + '\n\n' + errorMessage } : msg,
+        ),
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle clicking on a session in sidebar
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  const getStageDisplay = (stage) => {
-    const stageMap = {
-      discovery: 'Discovery Phase — Understanding your background',
-      analysis: 'Analysis Phase — Evaluating your strengths',
-      recommendations: 'Recommendations Phase — Exploring career options',
-      learning_path: 'Learning Path Phase — Building your roadmap',
-      action_plan: 'Action Plan Phase — Creating next steps',
-      follow_up: 'Follow-up Phase — Ongoing support'
-    };
-    return stageMap[stage] || 'Career Counseling Session';
-  };
-
   const handleClearChat = async () => {
-    if (!confirm('Clear all chat history and memory? This cannot be undone.')) return;
+    if (!confirm('Start a new conversation? This clears the current thread.')) return;
     try {
       await apiService.clearChatHistory();
-      setMessages([]);
+      setMessages([
+        {
+          id: 'welcome',
+          content: WELCOME_MD,
+          isUser: false,
+          timestamp: Date.now(),
+          suggestions: STARTER_SUGGESTIONS,
+        },
+      ]);
       setCurrentStage('discovery');
       setShowNewChatView(true);
-    } catch (e) {
-      console.error('Failed to clear chat:', e);
+    } catch (err) {
+      console.error('Failed to clear chat:', err);
     }
   };
 
@@ -1091,421 +1165,148 @@ Let's start by understanding your current situation. What brings you here today?
     setExportingPdf(true);
     try {
       await apiService.exportSessionPdf('history', 'career-plan.pdf');
-    } catch (e) {
-      console.error('PDF export failed:', e);
+    } catch (err) {
+      console.error('PDF export failed:', err);
     } finally {
       setExportingPdf(false);
     }
   };
 
   const handleFeedback = (messageId, rating) => {
-    setMessageFeedback(prev => ({ ...prev, [messageId]: rating }));
+    setMessageFeedback((prev) => ({ ...prev, [messageId]: rating }));
   };
 
-  // Handler for when user sends message from Claude input (landing view)
-  const handleClaudeInputSend = async ({ message }) => {
-    setShowNewChatView(false);
-    await handleSendMessage(message);
-  };
-
-
-  const toggleSidebar = () => {
-    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
-      setMobileSidebarOpen(prev => !prev);
-      return;
-    }
-    setSidebarExpanded(!sidebarExpanded);
-  };
-
-  const theme = isDarkMode ? darkTheme : lightTheme;
-
-  // ── Settings view ──────────────────────────────────────────────────────────
   if (showSettings) {
     return (
-      <ThemeProvider theme={theme}>
-        <GlobalStyle />
-        <ProfileSettings
-          isDarkMode={isDarkMode}
-          onBack={() => setShowSettings(false)}
-        />
-      </ThemeProvider>
+      <div className="carrera-root" style={{ minHeight: '100vh' }}>
+        <ProfileSettings isDarkMode={false} onBack={() => setShowSettings(false)} />
+      </div>
     );
   }
 
   return (
-    <ThemeProvider theme={theme}>
-      <GlobalStyle />
+    <div className="carrera-root" style={{ display: 'flex', height: '100vh' }}>
       {showAssessment && <AptitudeAssessment onClose={() => setShowAssessment(false)} />}
       {showComparison && <CareerComparison onClose={() => setShowComparison(false)} />}
-      <AppContainer onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-        {/* Mobile Overlay */}
-        <SidebarOverlay $isOpen={mobileSidebarOpen} onClick={() => setMobileSidebarOpen(false)} />
 
-        {/* Sidebar */}
-        <Sidebar $isExpanded={sidebarExpanded || mobileSidebarOpen}>
-          {/* Header with toggle */}
-          <SidebarHeader $isExpanded={sidebarExpanded || mobileSidebarOpen}>
-            <SidebarToggleBtn onClick={toggleSidebar} title={sidebarExpanded || mobileSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}>
-              {sidebarExpanded || mobileSidebarOpen ? <PanelLeftClose size={18} /> : <Menu size={18} />}
-            </SidebarToggleBtn>
-          </SidebarHeader>
+      <Sidebar
+        collapsed={collapsed}
+        onToggle={() => setCollapsed((v) => !v)}
+        user={user}
+        onSignIn={handleSignIn}
+        onSignOut={handleSignOut}
+        onOpenSettings={() => setShowSettings(true)}
+        onOpenComparison={() => setShowComparison(true)}
+        onNewConversation={handleClearChat}
+        canClear={messages.length > 1 || !showNewChatView}
+      />
 
-          {/* Navigation */}
-          <SidebarNav>
-            {messages.length > 0 && (
-              <NewChatBtn $isExpanded={sidebarExpanded || mobileSidebarOpen} onClick={handleClearChat} title="Clear chat & memory">
-                <span className="nav-icon"><Trash2 size={16} /></span>
-                <span className="nav-label">Clear chat</span>
-              </NewChatBtn>
-            )}
-          </SidebarNav>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <ChatHeader
+          stage={currentStage}
+          onExport={handleExportPdf}
+          exporting={exportingPdf}
+          disableExport={messages.length <= 1}
+        />
 
-          {/* Profile Footer */}
-          <SidebarFooter>
-            {user ? (
-              <div style={{ position: 'relative' }} ref={profileDropdownRef}>
-                <ProfileSection $isExpanded={sidebarExpanded || mobileSidebarOpen} onClick={() => setShowProfileDropdown(!showProfileDropdown)}>
-                  <div className="profile-avatar">
-                    {user.photoURL ? (
-                      <img src={user.photoURL} alt={user.displayName || 'Profile'} />
-                    ) : (
-                      <span>{user.displayName?.charAt(0) || <User size={16} />}</span>
-                    )}
-                  </div>
-                  {(sidebarExpanded || mobileSidebarOpen) && (
-                    <div className="profile-info">
-                      <div className="profile-name">{user.displayName || 'User'}</div>
-                    </div>
-                  )}
-                  {(sidebarExpanded || mobileSidebarOpen) && <ChevronDown size={14} className="expand-icon" />}
-                </ProfileSection>
-
-                {/* Profile Dropdown with Logout */}
-                {showProfileDropdown && (sidebarExpanded || mobileSidebarOpen) && (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '100%',
-                    left: 0,
-                    right: 0,
-                    marginBottom: '8px',
-                    background: theme.secondaryBackground,
-                    border: `1px solid ${theme.border}`,
-                    borderRadius: '8px',
-                    padding: '8px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                  }}>
-                    <button
-                      onClick={() => { setShowSettings(true); setShowProfileDropdown(false); }}
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        background: 'transparent',
-                        border: 'none',
-                        borderRadius: '6px',
-                        color: theme.text,
-                        fontSize: '0.875rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}
-                      onMouseOver={(e) => e.currentTarget.style.background = theme.border}
-                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <Settings size={15} /> Profile Settings
-                    </button>
-                    {/* Compare Careers button */}
-                    <button
-                      onClick={() => { setShowProfileDropdown(false); setShowComparison(true); }}
-                      style={{ width: '100%', padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: '6px', color: theme.text, fontSize: '0.875rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-                      onMouseOver={(e) => e.currentTarget.style.background = theme.border}
-                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                    >
-                      ⚖️ Compare Careers
-                    </button>
-                    {[
-                      { href: '/memory',     icon: '🧠', label: 'My Career Memory' },
-                      { href: '/roadmap',    icon: '🗺️', label: 'Learning Roadmap' },
-                      { href: '/developers', icon: '🔑', label: 'Developer API' },
-                    ].map(({ href, icon, label }) => (
-                      <button
-                        key={href}
-                        onClick={() => { setShowProfileDropdown(false); window.location.href = href; }}
-                        style={{ width: '100%', padding: '10px 12px', background: 'transparent', border: 'none', borderRadius: '6px', color: theme.text, fontSize: '0.875rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-                        onMouseOver={(e) => e.currentTarget.style.background = theme.border}
-                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                      >
-                        {icon} {label}
-                      </button>
-                    ))}
-                    <div style={{ borderTop: `1px solid ${theme.border}`, margin: '4px 0' }} />
-                    <button
-                      onClick={handleSignOut}
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        background: 'transparent',
-                        border: 'none',
-                        borderRadius: '6px',
-                        color: theme.text,
-                        fontSize: '0.875rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}
-                      onMouseOver={(e) => e.currentTarget.style.background = theme.border}
-                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <LogOut size={15} /> Log out
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              sidebarExpanded || mobileSidebarOpen ? (
-                <SignInButton onClick={handleSignIn} style={{ width: '100%' }}>
-                  Sign in with Google
-                </SignInButton>
-              ) : (
-                <ProfileSection $isExpanded={false} onClick={handleSignIn} title="Sign in">
-                  <div className="profile-avatar">
-                    <span><User size={16} /></span>
-                  </div>
-                </ProfileSection>
-              )
-            )}
-          </SidebarFooter>
-        </Sidebar>
-
-        {/* Main Content */}
-        <MainContent $sidebarExpanded={sidebarExpanded}>
-          <Header $minimal={!showNewChatView}>
-            {showNewChatView ? (
-              <HeaderCopy>
-                <HeaderEyebrow>
-                  <Sparkles size={13} />
-                  Career Strategy Workspace
-                </HeaderEyebrow>
-                <Title>AI Career Counselor</Title>
-                <HeaderSubtext>
-                  Personalized guidance, live roadmap support, and practical next steps.
-                </HeaderSubtext>
-              </HeaderCopy>
-            ) : (
-              <div />
-            )}
-            <HeaderRight>
-              {messages.length > 1 && (
-                <ThemeToggle
-                  onClick={handleExportPdf}
-                  disabled={exportingPdf}
-                  title="Export as PDF"
-                >
-                  <Download size={15} />
-                  {exportingPdf ? 'Exporting…' : 'Export PDF'}
-                </ThemeToggle>
-              )}
-            </HeaderRight>
-          </Header>
-
-          {showNewChatView ? (
-            /* Claude-style New Chat View */
-            <div className={isDarkMode ? 'dark' : ''} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDarkMode ? '#212121' : '#FAF9F5' }}>
-              <ClaudeChatInput
-                onSendMessage={handleClaudeInputSend}
-                userName={user?.displayName?.split(' ')[0] || 'there'}
-                isDark={isDarkMode}
-              />
-            </div>
-          ) : (
-            /* Regular Chat View */
-            <ChatContainer>
-              <StagePill>
-                <Compass size={14} />
-                {getStageDisplay(currentStage)}
-              </StagePill>
-              <ChatFrame>
-              <MessagesArea
-                ref={messagesAreaRef}
-                onScroll={handleMessagesScroll}
+        {showNewChatView ? (
+          <NewChatView
+            userName={user?.displayName?.split(' ')[0]}
+            onSend={(text) => handleSendMessage(text)}
+          />
+        ) : (
+          <>
+            <div ref={messagesAreaRef} onScroll={handleMessagesScroll} style={{ flex: 1, overflowY: 'auto' }}>
+              <div
+                style={{
+                  padding: '32px 28px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 22,
+                  maxWidth: 980,
+                  margin: '0 auto',
+                }}
                 role="log"
                 aria-label="Chat conversation"
                 aria-live="polite"
                 aria-relevant="additions"
               >
-                {messages.map((message) => {
-                  // Strip any in-progress <<META>> tokens during streaming so
-                  // the raw delimiter never reaches the UI. On stream-complete,
-                  // the backend sends authoritative clean_text which replaces this.
-                  const displayContent = message.isUser
-                    ? message.content
-                    : (message.content || '').split('<<META>>')[0];
+                <div style={{ textAlign: 'center', padding: '12px 0 4px' }}>
+                  <div className="eyebrow" style={{ color: 'var(--crr-text-faint)' }}>
+                    <Compass size={11} style={{ display: 'inline', marginRight: 6, verticalAlign: '-1px' }} />
+                    {STAGE_META[currentStage]?.label || 'SESSION'}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--crr-text-faint)', marginTop: 4 }}>
+                    {STAGE_META[currentStage]?.helper || 'Career conversation'}
+                  </div>
+                </div>
+
+                {messages.map((m) => {
+                  if (m.isUser) return <UserMessage key={m.id} text={m.content} />;
+                  const displayContent = (m.content || '').split('<<META>>')[0];
+                  const canFeedback = Boolean(user) && Boolean(displayContent) && !isLoading;
                   return (
-                  <MessageBubble
-                    key={message.id}
-                    $isUser={message.isUser}
-                    role={message.isUser ? 'note' : 'article'}
-                    aria-label={message.isUser ? 'Your message' : 'Assistant response'}
-                  >
-                    <div className="message-avatar" aria-hidden="true">
-                      {message.isUser ? <User size={16} /> : <Sparkles size={15} />}
-                    </div>
-                    <div className="message-shell">
-                      <div className="message-content">
-                        {message.isUser ? (
-                          displayContent
-                        ) : (
-                          <ReactMarkdown>{displayContent}</ReactMarkdown>
-                        )}
-                      </div>
-                      {/* Rich response component (career card / comparison / action plan) */}
-                      {!message.isUser && message.richComponent && (
-                        <RichResponseRenderer
-                          component={message.richComponent}
-                          onSuggestionClick={(text) => handleSendMessage(text)}
-                        />
-                      )}
-                      <div className="timestamp">
-                        {message.isUser ? 'You • ' : ''}{formatTime(message.timestamp)}
-                      </div>
-                      {/* Feedback buttons — only for AI messages with content */}
-                      {!message.isUser && displayContent && user && (
-                        <FeedbackBar>
-                        <FeedbackButton
-                          onClick={() => handleFeedback(message.id, 'thumbs_up')}
-                          title="Helpful"
-                          aria-label="Mark response as helpful"
-                          $active={messageFeedback[message.id] === 'thumbs_up'}
-                          $activeColor="#22c55e"
-                          $activeColorBg={isDarkMode ? 'rgba(34,197,94,0.2)' : 'rgba(34,197,94,0.15)'}
-                          $disabled={Boolean(messageFeedback[message.id])}
-                        >
-                          <ThumbsUp size={13} />
-                        </FeedbackButton>
-                        <FeedbackButton
-                          onClick={() => handleFeedback(message.id, 'thumbs_down')}
-                          title="Not helpful"
-                          aria-label="Mark response as not helpful"
-                          $active={messageFeedback[message.id] === 'thumbs_down'}
-                          $activeColor="#ef4444"
-                          $activeColorBg={isDarkMode ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.15)'}
-                          $disabled={Boolean(messageFeedback[message.id])}
-                        >
-                          <ThumbsDown size={13} />
-                        </FeedbackButton>
-                        {messageFeedback[message.id] && (
-                          <span style={{ fontSize: '0.7rem', color: theme.secondaryText, marginLeft: '0.125rem' }}>
-                            Feedback recorded
-                          </span>
-                        )}
-                        </FeedbackBar>
-                      )}
-                      {/* Per-message suggestion chips */}
-                      {!message.isUser && Array.isArray(message.suggestions) && message.suggestions.length > 0 && !isLoading && (
-                        <div
-                          role="group"
-                          aria-label="Suggested follow-up prompts"
-                          style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.6rem' }}
-                        >
-                          {message.suggestions.map((chip, ci) => (
-                            <button
-                              key={ci}
-                              onClick={() => handleSendMessage(chip)}
-                              aria-label={`Send suggested prompt: ${chip}`}
-                              style={{
-                                background: 'rgba(255,255,255,0.04)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                borderRadius: '999px',
-                                padding: '0.35rem 0.75rem',
-                                fontSize: '0.75rem',
-                                color: '#d4c5b9',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s',
-                                fontFamily: 'inherit',
-                              }}
-                              onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
-                              onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-                            >
-                              {chip}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </MessageBubble>
+                    <BotMessage
+                      key={m.id}
+                      message={m}
+                      onSuggest={(text) => handleSendMessage(text)}
+                      onRichSuggest={(text) => handleSendMessage(text)}
+                      feedback={messageFeedback[m.id]}
+                      onFeedback={(rating) => handleFeedback(m.id, rating)}
+                      canFeedback={canFeedback}
+                    />
                   );
                 })}
 
                 {(() => {
-                  // Pre-stream indicator: show only while the bot placeholder is still empty.
-                  // Once the first token arrives, the streaming text itself is the indicator.
                   const last = messages[messages.length - 1];
                   const preStream = isLoading && last && !last.isUser && !last.content;
-                  if (!preStream) return null;
-                  return (
-                    <TypingIndicator>
-                      <div className="typing-content">
-                        <span>Counselor is thinking</span>
-                        <div className="dots">
-                          <div className="dot"></div>
-                          <div className="dot"></div>
-                          <div className="dot"></div>
-                        </div>
-                      </div>
-                    </TypingIndicator>
-                  );
+                  return preStream ? <TypingDots /> : null;
                 })()}
 
                 <div ref={messagesEndRef} />
+              </div>
 
-                {/* Jump-to-latest pill — shown when user has scrolled up */}
-                {!isNearBottom && messages.length > 2 && (
-                  <JumpToLatestButton
-                    onClick={() => { setIsNearBottom(true); scrollToBottom('smooth'); }}
-                    aria-label="Jump to latest message"
-                  >
-                    ↓ Jump to latest
-                  </JumpToLatestButton>
-                )}
-              </MessagesArea>
+              {!isNearBottom && messages.length > 2 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsNearBottom(true);
+                    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  style={{
+                    position: 'sticky',
+                    bottom: 20,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    padding: '8px 16px',
+                    borderRadius: 999,
+                    background: 'var(--ink-900)',
+                    color: 'var(--cream-50)',
+                    border: 'none',
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    boxShadow: 'var(--crr-shadow)',
+                    fontFamily: 'inherit',
+                    display: 'block',
+                    margin: '0 auto',
+                  }}
+                >
+                  ↓ Jump to latest
+                </button>
+              )}
+            </div>
 
-              <InputSection>
-                <ComposerCard>
-                  <div className="input-container" role="form" aria-label="Send a message">
-                    <MessageInput
-                      ref={inputRef}
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder={STAGE_PLACEHOLDERS[currentStage] || STAGE_PLACEHOLDERS.discovery}
-                      disabled={isLoading}
-                      rows="1"
-                      aria-label="Type your message to the career counselor"
-                    />
-                    <SendButton
-                      onClick={() => handleSendMessage()}
-                      disabled={isLoading || !inputValue.trim()}
-                      aria-label="Send message"
-                    >
-                      <ArrowUp size={18} aria-hidden="true" />
-                    </SendButton>
-                  </div>
-                  <ComposerFooter>
-                    <HelperPill>
-                      <span>+</span>
-                    </HelperPill>
-                    <span>Press Enter to send</span>
-                  </ComposerFooter>
-                </ComposerCard>
-              </InputSection>
-              </ChatFrame>
-            </ChatContainer>
-          )}
-        </MainContent>
-      </AppContainer>
-    </ThemeProvider>
+            <Composer
+              value={inputValue}
+              onChange={setInputValue}
+              onSend={() => handleSendMessage()}
+              disabled={isLoading}
+              stage={currentStage}
+            />
+          </>
+        )}
+      </main>
+    </div>
   );
-};
-
-export default ChatInterface;
+}
