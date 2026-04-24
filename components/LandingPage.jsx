@@ -1,511 +1,1439 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-    ChevronRight,
-    Clock,
-    ShieldCheck,
-    BarChart3,
-    BookOpen,
-    Code2,
-    GraduationCap,
-    Briefcase,
-    MessageCircle,
-    TrendingUp,
-    Map,
-    ArrowRight,
-    Star,
-    Globe,
-    Trophy,
-    User,
-    CheckCircle2,
-    Lock
+  ArrowRight,
+  ArrowUp,
+  BookOpen,
+  Brain,
+  Briefcase,
+  Check,
+  ChevronRight,
+  Clock,
+  Lock,
+  Map,
+  MessageCircle,
+  Sparkles,
+  Star,
+  Target,
+  TrendingUp,
 } from 'lucide-react';
-import { BentoCard } from './BentoCard';
-import { CareerChat } from './CareerChat';
-import { SectionHeader } from './SectionHeader';
-import { useScrollReveal } from '../hooks/useScrollReveal';
-import { FlipWords } from './ui/flip-words';
-import { AnimatedShinyText } from './ui/animated-shiny-text';
-import { cn } from '../lib/utils';
 
-const LandingPage = ({ onSignIn }) => {
-    const [activeStep, setActiveStep] = useState(0);
-    const flipWords = ["clarity", "direction", "confidence", "purpose"];
+/* ---------- Flip words (hero) ---------- */
+function FlipWords({ words, interval = 2200 }) {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setI((x) => (x + 1) % words.length), interval);
+    return () => clearInterval(id);
+  }, [words.length, interval]);
+  return (
+    <span style={{ position: 'relative', display: 'inline-block', minWidth: '6ch', verticalAlign: 'baseline' }}>
+      {words.map((w, idx) => (
+        <span
+          key={w}
+          className="serif-accent"
+          style={{
+            position: idx === i ? 'relative' : 'absolute',
+            left: 0,
+            top: 0,
+            opacity: idx === i ? 1 : 0,
+            transform: idx === i ? 'translateY(0)' : 'translateY(12px)',
+            transition: 'opacity 0.6s cubic-bezier(.2,.7,.2,1), transform 0.6s cubic-bezier(.2,.7,.2,1)',
+            color: 'var(--crr-accent)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {w}
+        </span>
+      ))}
+    </span>
+  );
+}
 
-    // Initialize scroll reveal animations
-    useScrollReveal();
+/* ---------- Shiny badge ---------- */
+function ShinyBadge({ children }) {
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '6px 14px 6px 8px',
+        borderRadius: 999,
+        background: 'var(--crr-surface-2)',
+        border: '1px solid var(--crr-line)',
+        fontSize: 13,
+        color: 'var(--crr-text-dim)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      <span
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, var(--crr-accent) 0%, var(--peach) 100%)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#fff',
+        }}
+      >
+        <Sparkles size={12} strokeWidth={2.2} />
+      </span>
+      <span style={{ position: 'relative', zIndex: 1 }}>{children}</span>
+      <span
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(110deg, transparent 40%, rgba(255,255,255,0.4) 50%, transparent 60%)',
+          animation: 'crr-shine 3s ease-in-out infinite',
+          pointerEvents: 'none',
+        }}
+      />
+    </div>
+  );
+}
 
-    // Auto-cycle timeline for demo purposes
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setActiveStep((prev) => (prev + 1) % 4);
-        }, 4000);
-        return () => clearInterval(interval);
-    }, []);
+/* ---------- Hero chat demo ---------- */
+function CareerChatDemo() {
+  const script = useMemo(
+    () => [
+      { role: 'bot', text: "Hi — I'm your career mentor. Tell me what you've been thinking about." },
+      { role: 'user', text: "I'm a 3rd year CS student. I like building things but I'm overwhelmed." },
+      { role: 'bot', text: 'Totally normal. Are you more drawn to shipping products, or figuring out how systems work?' },
+      { role: 'user', text: 'Shipping things people use.' },
+      { role: 'bot', text: '', card: 'match' },
+    ],
+    [],
+  );
+  const [step, setStep] = useState(0);
+  const [typing, setTyping] = useState(false);
 
-    return (
-        <div className="min-h-screen selection:bg-blue-100 overflow-x-hidden bg-white">
-            {/* Navigation */}
-            <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-theme">
-                <div className="max-w-[1600px] mx-auto px-6 lg:px-12">
-                    <div className="flex justify-between items-center h-16">
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">C</div>
-                            <span className="text-xl font-bold text-[#0F172A] tracking-tight">Careerra</span>
-                        </div>
-                        <div className="hidden md:flex items-center gap-8">
-                            <a href="#features" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">Features</a>
-                            <a href="#how-it-works" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">How it Works</a>
-                            <button
-                                onClick={onSignIn}
-                                className="bg-primary hover:opacity-90 text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-all transform hover:scale-105 active:scale-95"
-                            >
-                                Start Assessment
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-
-            {/* Hero Section */}
-            <section className="relative pt-32 pb-12 overflow-hidden">
-                <div className="w-full max-w-[1800px] mx-auto px-6 lg:px-12">
-                    {/* Main Hero Split */}
-                    <div className="grid lg:grid-cols-12 gap-8 lg:gap-24 items-center mb-20">
-                        {/* Left: Content */}
-                        <div className="lg:col-span-8 reveal" data-reveal-delay="0">
-                            <div className="mb-6">
-                                <div
-                                    className={cn(
-                                        "group rounded-full border border-black/5 bg-neutral-100 text-base transition-all ease-in hover:cursor-pointer hover:bg-neutral-200 dark:border-white/5 dark:bg-neutral-900 dark:hover:bg-neutral-800 inline-flex"
-                                    )}
-                                >
-                                    <AnimatedShinyText className="inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium transition ease-out hover:text-neutral-600 hover:duration-300 hover:dark:text-neutral-400">
-                                        <span>Careerra — From confusion to direction</span>
-                                    </AnimatedShinyText>
-                                </div>
-                            </div>
-                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#0F172A] leading-tight tracking-tight mb-6">
-                                Get career <FlipWords words={flipWords} className="text-primary" />—<br className="hidden sm:block" />and a plan you can follow.
-                            </h1>
-                            <p className="text-lg text-slate-500 leading-relaxed mb-8 max-w-xl">
-                                Answer a few questions and get a personalized roadmap with courses, projects, and certifications.
-                            </p>
-                            <div className="flex flex-col sm:flex-row items-start gap-4">
-                                <button
-                                    onClick={onSignIn}
-                                    className="bg-primary hover:opacity-90 text-white px-8 py-4 rounded-xl text-base font-semibold transition-all transform hover:scale-[1.02] active:scale-95 flex items-center gap-2"
-                                >
-                                    Get My Career Direction
-                                    <ChevronRight className="w-5 h-5" />
-                                </button>
-                            </div>
-                            <p className="mt-6 text-sm text-slate-400 flex items-center gap-2">
-                                <ShieldCheck className="w-4 h-4" />
-                                Free to start · Takes under 5 minutes
-                            </p>
-                        </div>
-
-                        {/* Right: Interactive Chat */}
-                        <div className="lg:col-span-4 reveal flex justify-end" data-reveal-delay="200">
-                            <div className="w-full max-w-[420px] rounded-[2.5rem] bg-white border border-theme shadow-2xl overflow-hidden min-h-[480px] max-h-[480px]">
-                                <CareerChat />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Secondary Bento Grid - Quick Highlights */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 reveal" data-reveal-delay="400">
-                        <BentoCard className="bg-blue-50 border border-blue-100 p-8 flex items-center justify-between group">
-                            <div className="flex flex-col h-full justify-between">
-                                <div>
-                                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mb-4 text-primary">
-                                        <TrendingUp className="w-5 h-5" />
-                                    </div>
-                                    <h3 className="font-bold text-slate-900 text-lg mb-1">AI Architect</h3>
-                                    <p className="text-[10px] text-primary uppercase tracking-wider font-extrabold">Top Match Alert</p>
-                                </div>
-                                <div className="mt-4">
-                                    <div className="h-2 w-32 bg-blue-200 rounded-full overflow-hidden">
-                                        <div className="h-full bg-primary w-[92%] transition-all duration-1000"></div>
-                                    </div>
-                                    <div className="text-[11px] text-slate-500 mt-2 font-bold">98% Capability Match</div>
-                                </div>
-                            </div>
-                            <TrendingUp className="w-16 h-16 text-primary/10 -rotate-12 group-hover:rotate-0 transition-transform" />
-                        </BentoCard>
-
-                        <BentoCard className="bg-white border border-theme p-8">
-                            <div className="flex flex-col gap-4">
-                                <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                    <Map className="w-3 h-3" /> Personalized Roadmap
-                                </h4>
-                                <div className="space-y-4">
-                                    {[
-                                        { label: 'LLM Foundations', status: 'done' },
-                                        { label: 'Vector Databases', status: 'active' },
-                                        { label: 'Production RAG', status: 'pending' },
-                                    ].map((item, i) => (
-                                        <div key={i} className="flex items-center gap-3">
-                                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${item.status === 'done' ? 'bg-emerald-500 border-emerald-500' : item.status === 'active' ? 'border-primary animate-pulse' : 'border-slate-200'}`}>
-                                                {item.status === 'done' && <Star className="w-2 h-2 text-white fill-current" />}
-                                            </div>
-                                            <span className={`text-sm font-bold ${item.status === 'done' ? 'line-through text-slate-400' : 'text-slate-700'}`}>{item.label}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </BentoCard>
-
-                        <BentoCard className="bg-[#0F172A] text-white p-8 flex flex-col items-center justify-center gap-4 text-center">
-                            <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mb-2">
-                                <Clock className="w-6 h-6 text-blue-400" />
-                            </div>
-                            <div>
-                                <div className="text-3xl font-extrabold">&lt; 3 mins</div>
-                                <div className="text-[10px] text-slate-400 uppercase font-extrabold tracking-widest mt-2">To get your first roadmap</div>
-                            </div>
-                        </BentoCard>
-                    </div>
-                </div>
-            </section>
-
-            {/* Features Section - Refined Bento Grid */}
-            <section id="features" className="py-32 bg-slate-50/50">
-                <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
-                    <SectionHeader
-                        badge="Advanced Analysis"
-                        title="The Engine for Your Future"
-                        description="Our AI doesn't just suggest jobs; it maps your entire professional trajectory using live labor market intelligence."
-                    />
-
-                    <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-6 mt-20 h-auto md:h-[750px]">
-                        {/* Main Feature: Skill Gap Analysis (Tall 1x2) */}
-                        <BentoCard className="md:col-span-1 md:row-span-2 bg-[#0F172A] text-white p-10 flex flex-col justify-between overflow-hidden relative reveal" data-reveal-delay="0">
-                            <div className="relative z-10">
-                                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-8 text-blue-400 border border-white/10">
-                                    <BarChart3 className="w-6 h-6" />
-                                </div>
-                                <h3 className="text-3xl font-bold mb-6 tracking-tight leading-tight">Skill Gap Analysis</h3>
-                                <p className="text-slate-400 font-medium leading-relaxed">We benchmark your current profile against thousands of hiring bars at top-tier tech firms.</p>
-                            </div>
-
-                            <div className="space-y-8 relative z-10">
-                                {[
-                                    { label: 'Technical depth', val: 85, color: 'bg-blue-500' },
-                                    { label: 'System Design', val: 42, color: 'bg-emerald-400' },
-                                    { label: 'Leadership', val: 68, color: 'bg-amber-400' },
-                                    { label: 'Product Thinking', val: 25, color: 'bg-slate-600' }
-                                ].map((item, i) => (
-                                    <div key={i} className="group/item">
-                                        <div className="flex justify-between text-[10px] mb-2 font-extrabold tracking-widest text-slate-500 uppercase">
-                                            <span>{item.label}</span>
-                                            <span className="text-white">{item.val}%</span>
-                                        </div>
-                                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-                                            <div
-                                                className={`h-full ${item.color} transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(59,130,246,0.3)]`}
-                                                style={{ width: `${item.val}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
-                                ))}
-                                <div className="pt-4 border-t border-white/10 mt-6">
-                                    <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
-                                        <CheckCircle2 className="w-3 h-3" /> Priority Improvement Found
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Decorative background element */}
-                            <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl"></div>
-                        </BentoCard>
-
-                        {/* Personalized Career Matches (Wide 2x1) */}
-                        <BentoCard className="md:col-span-2 md:row-span-1 bg-white border border-theme p-10 flex flex-col justify-between group overflow-hidden reveal" data-reveal-delay="100">
-                            <div className="flex justify-between items-start z-10">
-                                <div className="max-w-md">
-                                    <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6 text-emerald-600 border border-emerald-100">
-                                        <TrendingUp className="w-6 h-6" />
-                                    </div>
-                                    <h3 className="text-3xl font-bold text-slate-900 mb-4 tracking-tight">Personalized Career Matches</h3>
-                                    <p className="text-slate-600 font-medium leading-relaxed">Identify roles with high salary floors and 300% growth potential in the next decade.</p>
-                                </div>
-                                <div className="hidden lg:flex flex-col items-end">
-                                    <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Live Demand</div>
-                                    <div className="flex items-center gap-1 text-emerald-500 font-bold">
-                                        <TrendingUp className="w-4 h-4" /> +12.4% MoM
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-wrap gap-3 mt-8 z-10">
-                                {[
-                                    { name: 'AI Solutions Architect', growth: 'High' },
-                                    { name: 'Data Product Manager', growth: 'Stable' },
-                                    { name: 'ML Ops Engineer', growth: 'Explosive' },
-                                    { name: 'Growth Strategist', growth: 'Med' }
-                                ].map((role) => (
-                                    <div key={role.name} className="px-5 py-3 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-3 hover:bg-white hover:border-primary/30 hover:shadow-lg hover:shadow-blue-500/5 transition-all cursor-default">
-                                        <span className="text-sm font-bold text-slate-700">{role.name}</span>
-                                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tight ${role.growth === 'Explosive' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
-                                            }`}>{role.growth}</span>
-                                    </div>
-                                ))}
-                            </div>
-                            <ArrowRight className="absolute -right-4 -bottom-4 w-32 h-32 text-slate-50 group-hover:text-blue-50 group-hover:-rotate-12 transition-all duration-700" />
-                        </BentoCard>
-
-                        {/* Clarity Rating (Small 1x1) */}
-                        <BentoCard className="md:col-span-1 md:row-span-1 bg-primary text-white p-10 flex flex-col items-center justify-center text-center reveal" data-reveal-delay="200">
-                            <Trophy className="w-12 h-12 mb-6 text-blue-200" />
-                            <div className="text-5xl font-extrabold mb-2 tracking-tighter">4.9/5</div>
-                            <div className="text-[11px] font-extrabold text-blue-100 uppercase tracking-widest mb-6">User Clarity Rating</div>
-                            <div className="flex -space-x-3">
-                                {["AL", "KR", "MN", "SJ", "DP"].map((initials, i) => (
-                                    <div
-                                        key={i}
-                                        className="w-10 h-10 rounded-full border-4 border-primary shadow-xl bg-blue-100 text-primary text-[10px] font-extrabold flex items-center justify-center"
-                                        aria-label={`Testimonial profile ${i + 1}`}
-                                    >
-                                        {initials}
-                                    </div>
-                                ))}
-                            </div>
-                        </BentoCard>
-
-                        {/* High-Paying Course Tracks (Wide 2x1) */}
-                        <BentoCard className="md:col-span-2 md:row-span-1 bg-white border border-theme p-10 flex items-center justify-between group reveal" data-reveal-delay="300">
-                            <div className="flex-1 pr-8">
-                                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 text-primary border border-blue-100">
-                                    <BookOpen className="w-6 h-6" />
-                                </div>
-                                <h3 className="text-3xl font-bold text-slate-900 mb-4 tracking-tight">High-Paying Course Tracks</h3>
-                                <p className="text-slate-600 font-medium leading-relaxed">No more infinite scrolling. We curate the exact learning paths from MIT, Stanford, and industry leaders.</p>
-                                <button className="mt-8 px-6 py-3 bg-slate-900 text-white rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-primary transition-all group/btn">
-                                    View My Tracks <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                                </button>
-                            </div>
-                            <div className="hidden lg:grid grid-cols-2 gap-4">
-                                {[
-                                    { icon: <GraduationCap />, label: 'MIT Professional' },
-                                    { icon: <Star />, label: 'Google Elite' },
-                                    { icon: <ShieldCheck />, label: 'DeepLearning.AI' },
-                                    { icon: <Briefcase />, label: 'IBM Strategic' }
-                                ].map((inst, i) => (
-                                    <div key={i} className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-50 border border-slate-100 gap-2 w-28 group-hover:scale-105 transition-all duration-300">
-                                        <div className="text-slate-400 group-hover:text-primary transition-colors">{inst.icon}</div>
-                                        <span className="text-[10px] font-extrabold text-slate-500 text-center uppercase tracking-tight">{inst.label}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </BentoCard>
-
-                        {/* Industry Portfolios (Small 1x1) */}
-                        <BentoCard className="md:col-span-1 md:row-span-1 bg-emerald-50 border border-emerald-100 p-10 flex flex-col justify-center reveal" data-reveal-delay="400">
-                            <div className="text-emerald-700 font-extrabold text-[11px] uppercase tracking-widest mb-3 flex items-center gap-2">
-                                <Code2 className="w-4 h-4" /> Project Factory
-                            </div>
-                            <h4 className="font-bold text-slate-900 text-2xl tracking-tight mb-4">Industry Portfolios</h4>
-                            <p className="text-sm text-slate-600 leading-relaxed font-medium mb-6">Receive real-world project prompts verified by actual hiring managers.</p>
-                            <div className="flex items-center gap-2 text-xs font-bold text-emerald-600">
-                                <Star className="w-4 h-4 fill-current" /> 15+ New Prompts Weekly
-                            </div>
-                        </BentoCard>
-                    </div>
-                </div>
-            </section>
-
-            {/* How It Works - Interactive Timeline */}
-            <section id="how-it-works" className="py-32 bg-white">
-                <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
-                    <div className="grid lg:grid-cols-2 gap-24 items-center">
-                        <div className="reveal">
-                            <SectionHeader
-                                badge="The Framework"
-                                title="How It Works"
-                                description="Our proprietary AI pipeline transforms raw profile data into strategic career roadmaps."
-                                align="left"
-                            />
-                            <div className="mt-16 space-y-8">
-                                {[
-                                    { title: "Personal Discovery", desc: "Our AI starts by understanding your unique cognitive patterns, interests, and professional history." },
-                                    { title: "Market Alignment", desc: "We cross-reference your profile with 5,000+ growing roles across the global tech economy." },
-                                    { title: "Gap Verification", desc: "Identifying the exact skills you're missing to command a 30% higher salary today." },
-                                    { title: "Strategic Roadmap", desc: "An actionable, week-by-week plan to acquire those skills and land the interview." }
-                                ].map((step, i) => (
-                                    <div
-                                        key={i}
-                                        className={`flex items-start gap-6 p-6 rounded-[2rem] transition-all cursor-default group border-2 ${activeStep === i ? 'bg-blue-50 border-blue-200 shadow-xl shadow-blue-500/5' : 'border-transparent opacity-60 hover:opacity-100 hover:bg-slate-50'}`}
-                                        onMouseEnter={() => setActiveStep(i)}
-                                    >
-                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-extrabold text-xl flex-shrink-0 transition-all ${activeStep === i ? 'bg-primary text-white scale-110' : 'bg-slate-200 text-slate-500'}`}>
-                                            {i + 1}
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-slate-900 text-xl mb-2">{step.title}</h4>
-                                            <p className="text-slate-600 font-medium leading-relaxed">{step.desc}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="relative reveal" data-reveal-delay="200">
-                            {/* Visual Mock of Step Progress */}
-                            <div className="bg-[#0F172A] rounded-[3rem] p-6 shadow-3xl overflow-hidden relative border-[12px] border-white/5">
-                                <div className="absolute top-6 right-8 flex gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                                    <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                                </div>
-                                <div className="bg-slate-900 rounded-[2rem] p-10 min-h-[480px] flex flex-col justify-center gap-12 border border-white/10">
-                                    {activeStep === 0 && <div className="animate-fade-in space-y-6">
-                                        <div className="h-4 bg-blue-500/20 rounded-full w-1/3"></div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="h-14 bg-white/5 rounded-2xl border border-white/10 flex items-center px-4 gap-3">
-                                                <User className="text-blue-400 w-5 h-5" />
-                                                <div className="h-2 bg-white/10 rounded-full w-1/2"></div>
-                                            </div>
-                                            <div className="h-14 bg-white/5 rounded-2xl border border-white/10 flex items-center px-4 gap-3">
-                                                <Star className="text-amber-400 w-5 h-5" />
-                                                <div className="h-2 bg-white/10 rounded-full w-1/2"></div>
-                                            </div>
-                                        </div>
-                                        <div className="h-14 bg-white/5 rounded-2xl border border-white/10"></div>
-                                        <div className="h-14 bg-white/5 rounded-2xl border border-white/10"></div>
-                                    </div>}
-                                    {activeStep === 1 && <div className="animate-fade-in flex flex-col items-center gap-8">
-                                        <div className="relative w-32 h-32">
-                                            <div className="absolute inset-0 rounded-full border-4 border-blue-500/20"></div>
-                                            <div className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
-                                            <div className="absolute inset-4 rounded-full border-4 border-emerald-500 border-b-transparent animate-spin duration-[3s]"></div>
-                                            <Globe className="absolute inset-0 m-auto text-blue-400 w-10 h-10" />
-                                        </div>
-                                        <div className="text-center font-bold text-blue-400 uppercase tracking-[0.2em] text-[10px]">Processing global market trends...</div>
-                                    </div>}
-                                    {activeStep === 2 && <div className="animate-fade-in space-y-6">
-                                        <div className="p-5 bg-emerald-500/10 rounded-[1.5rem] border border-emerald-500/20 flex items-center gap-4">
-                                            <CheckCircle2 className="text-emerald-400 w-6 h-6" />
-                                            <div className="text-sm font-bold text-emerald-400 uppercase tracking-widest">Profile Validated</div>
-                                        </div>
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between items-center px-2">
-                                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Market Fit</span>
-                                                <span className="text-blue-400 font-bold">92%</span>
-                                            </div>
-                                            <div className="h-3 bg-white/10 rounded-full w-full overflow-hidden">
-                                                <div className="h-full bg-blue-500 w-[92%]"></div>
-                                            </div>
-                                        </div>
-                                    </div>}
-                                    {activeStep === 3 && <div className="animate-fade-in flex flex-col items-center gap-6">
-                                        <div className="w-20 h-20 bg-primary rounded-[1.5rem] flex items-center justify-center text-white shadow-2xl shadow-blue-500/40">
-                                            <MessageCircle className="w-10 h-10" />
-                                        </div>
-                                        <div className="text-white font-bold text-xl text-center">Your Strategic Advisor is ready.</div>
-                                        <div className="flex gap-3">
-                                            <div className="w-3 h-3 rounded-full bg-blue-400 animate-bounce"></div>
-                                            <div className="w-3 h-3 rounded-full bg-blue-400 animate-bounce [animation-delay:0.2s]"></div>
-                                            <div className="w-3 h-3 rounded-full bg-blue-400 animate-bounce [animation-delay:0.4s]"></div>
-                                        </div>
-                                    </div>}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* CTA Section */}
-            <section className="py-24">
-                <div className="max-w-300 mx-auto px-6 lg:px-12">
-                    <div className="bg-[#0F172A] rounded-[4rem] p-12 md:p-24 text-center text-white relative overflow-hidden reveal border-[10px] border-white/5 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)]">
-                        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-[120px]"></div>
-                        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-500/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-[100px]"></div>
-
-                        <h2 className="text-5xl md:text-7xl font-bold mb-8 tracking-tighter leading-tight">Your Career, <br /><span className="text-blue-400">Re-Engineered.</span></h2>
-                        <p className="text-2xl text-slate-400 mb-14 max-w-2xl mx-auto font-medium leading-relaxed">
-                            Join 12,400+ professionals who stopped guessing and started growing with Careerra.
-                        </p>
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
-                            <button
-                                onClick={onSignIn}
-                                className="w-full sm:w-auto bg-primary hover:opacity-90 text-white px-12 py-6 rounded-[2rem] text-2xl font-bold transition-all transform hover:scale-105 shadow-2xl shadow-blue-500/20 flex items-center gap-4 group"
-                            >
-                                Start Free Assessment <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                            </button>
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-blue-400">
-                                    <Lock className="w-5 h-5" />
-                                </div>
-                                <div className="text-left">
-                                    <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest leading-none mb-1">Privacy First</div>
-                                    <div className="text-xs font-bold text-slate-300">No CC Required</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Footer */}
-            <footer className="bg-white border-t border-theme py-24">
-                <div className="max-w-[1600px] mx-auto px-6 lg:px-12">
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-16">
-                        <div className="col-span-2 lg:col-span-2">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/10">C</div>
-                                <span className="text-2xl font-bold text-[#0F172A] tracking-tight">Careerra</span>
-                            </div>
-                            <p className="text-primary font-semibold text-sm uppercase tracking-widest mb-4">Clarity for your next move</p>
-                            <p className="text-slate-500 text-base max-w-sm leading-relaxed font-medium">
-                                AI-powered career intelligence that helps you make confident decisions about your professional future.
-                            </p>
-                        </div>
-                        <div>
-                            <h5 className="font-extrabold text-slate-900 text-xs uppercase tracking-[0.2em] mb-8">Product</h5>
-                            <ul className="space-y-5 text-slate-600 font-bold text-sm">
-                                <li><a href="#" className="hover:text-primary transition-colors">Career Assessment</a></li>
-                                <li><a href="#" className="hover:text-primary transition-colors">Skill Gap Maps</a></li>
-                                <li><a href="#" className="hover:text-primary transition-colors">Course Curations</a></li>
-                                <li><a href="#" className="hover:text-primary transition-colors">Enterprise Tracks</a></li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h5 className="font-extrabold text-slate-900 text-xs uppercase tracking-[0.2em] mb-8">Company</h5>
-                            <ul className="space-y-5 text-slate-600 font-bold text-sm">
-                                <li><a href="#" className="hover:text-primary transition-colors">About Mission</a></li>
-                                <li><a href="#" className="hover:text-primary transition-colors">Privacy Ethics</a></li>
-                                <li><a href="#" className="hover:text-primary transition-colors">Security</a></li>
-                                <li><a href="#" className="hover:text-primary transition-colors">Terms</a></li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h5 className="font-extrabold text-slate-900 text-xs uppercase tracking-[0.2em] mb-8">Ecosystem</h5>
-                            <ul className="space-y-5 text-slate-600 font-bold text-sm">
-                                <li><a href="#" className="hover:text-primary transition-colors">Open Data</a></li>
-                                <li><a href="#" className="hover:text-primary transition-colors">University Partners</a></li>
-                                <li><a href="#" className="hover:text-primary transition-colors">Labor API</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div className="mt-24 pt-10 border-t border-theme flex flex-col md:flex-row justify-between items-center gap-8">
-                        <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.3em]">© 2025 Careerra. Built for the future of work.</p>
-                        <div className="flex items-center gap-6">
-                            <div className="flex -space-x-3">
-                                {[1, 2, 3, 4].map(i => <div key={i} className="w-8 h-8 rounded-full bg-slate-100 border-4 border-white shadow-sm"></div>)}
-                            </div>
-                            <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] flex items-center gap-2">
-                                Trusted by 12,400+ Pioneers
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </footer>
-        </div>
+  useEffect(() => {
+    if (step >= script.length) {
+      const id = setTimeout(() => setStep(0), 3800);
+      return () => clearTimeout(id);
+    }
+    const msg = script[step];
+    const typingTimer = setTimeout(() => setTyping(msg.role === 'bot'), 0);
+    const id = setTimeout(
+      () => {
+        setTyping(false);
+        setStep((s) => s + 1);
+      },
+      msg.role === 'bot' ? 1600 : 1100,
     );
-};
+    return () => {
+      clearTimeout(typingTimer);
+      clearTimeout(id);
+    };
+  }, [step, script]);
 
-export default LandingPage;
+  const shown = script.slice(0, step);
+
+  return (
+    <div
+      className="crr-card"
+      style={{ padding: 0, width: '100%', maxWidth: 480, overflow: 'hidden', boxShadow: 'var(--crr-shadow-lg)' }}
+    >
+      <div
+        style={{
+          padding: '14px 18px',
+          borderBottom: '1px solid var(--crr-line)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          background: 'var(--crr-surface-3)',
+        }}
+      >
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--sage)' }} />
+        <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--crr-text)' }}>Carrera · live mentor</span>
+        <span className="eyebrow" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--crr-text-faint)' }}>
+          DISCOVERY
+        </span>
+      </div>
+
+      <div style={{ padding: '20px 18px', minHeight: 380, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {shown.map((m, i) => {
+          if (m.card === 'match') return <MatchMini key={i} />;
+          return (
+            <div
+              key={i}
+              className={`bubble ${m.role === 'bot' ? 'bubble-bot' : 'bubble-user'}`}
+              style={{
+                animation: 'crr-riseIn 0.5s cubic-bezier(.2,.7,.2,1) both',
+                alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
+                fontSize: 14,
+                maxWidth: '85%',
+              }}
+            >
+              {m.text}
+            </div>
+          );
+        })}
+        {typing && (
+          <div
+            className="bubble bubble-bot"
+            style={{ display: 'inline-flex', gap: 4, alignSelf: 'flex-start', padding: '14px 16px' }}
+          >
+            <TypingDot delay={0} />
+            <TypingDot delay={0.15} />
+            <TypingDot delay={0.3} />
+          </div>
+        )}
+      </div>
+
+      <div
+        style={{
+          padding: '12px 14px',
+          borderTop: '1px solid var(--crr-line)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          background: 'var(--crr-surface-2)',
+        }}
+      >
+        <div
+          style={{
+            flex: 1,
+            padding: '10px 14px',
+            borderRadius: 999,
+            background: 'var(--crr-surface-3)',
+            color: 'var(--crr-text-faint)',
+            fontSize: 13,
+          }}
+        >
+          Keep the conversation going…
+        </div>
+        <button
+          type="button"
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            background: 'var(--crr-accent)',
+            color: '#fff',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          <ArrowUp size={16} strokeWidth={2.2} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TypingDot({ delay }) {
+  return (
+    <span
+      style={{
+        width: 6,
+        height: 6,
+        borderRadius: '50%',
+        background: 'var(--crr-text-faint)',
+        animation: 'crr-tping 1.2s ease-in-out infinite',
+        animationDelay: `${delay}s`,
+        alignSelf: 'center',
+      }}
+    />
+  );
+}
+
+function MatchMini() {
+  return (
+    <div
+      style={{
+        border: '1px solid var(--crr-line)',
+        borderRadius: 18,
+        padding: 14,
+        background: 'var(--crr-surface-2)',
+        animation: 'crr-riseIn 0.6s cubic-bezier(.2,.7,.2,1) both',
+        display: 'flex',
+        gap: 12,
+        alignItems: 'center',
+      }}
+    >
+      <div
+        style={{
+          width: 48,
+          height: 48,
+          borderRadius: 14,
+          background: 'linear-gradient(135deg, var(--peach), var(--crr-accent))',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#fff',
+        }}
+      >
+        <Target size={22} />
+      </div>
+      <div style={{ flex: 1 }}>
+        <div className="eyebrow" style={{ fontSize: 12, color: 'var(--crr-text-faint)' }}>
+          Match 94%
+        </div>
+        <div style={{ fontSize: 15, fontWeight: 500 }}>Applied AI Engineer</div>
+        <div style={{ fontSize: 12.5, color: 'var(--crr-text-dim)' }}>Ships real tools, systems-adjacent.</div>
+      </div>
+      <ChevronRight size={18} />
+    </div>
+  );
+}
+
+/* ---------- Navbar ---------- */
+function Logo({ compact }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: 10,
+          background: 'linear-gradient(135deg, var(--crr-accent), var(--peach))',
+          display: 'grid',
+          placeItems: 'center',
+          boxShadow: '0 2px 8px -2px var(--crr-accent)',
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+          <path d="M12 3v18" />
+          <path d="m5 10 7-7 7 7" />
+          <circle cx="12" cy="17" r="2" />
+        </svg>
+      </div>
+      {!compact && (
+        <span className="display" style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em' }}>
+          carrera
+        </span>
+      )}
+    </div>
+  );
+}
+
+function Navbar({ onStart, onAuth }) {
+  return (
+    <nav
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 20,
+        padding: '16px 32px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 40,
+        background: 'rgba(251,247,241,0.75)',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid var(--crr-line)',
+      }}
+    >
+      <Logo />
+      <div style={{ display: 'flex', gap: 4, marginLeft: 20 }}>
+        <a href="#features" className="crr-btn crr-btn-ghost" style={{ fontSize: 14, padding: '8px 14px' }}>
+          Features
+        </a>
+        <a href="#how" className="crr-btn crr-btn-ghost" style={{ fontSize: 14, padding: '8px 14px' }}>
+          How it works
+        </a>
+        <a href="#manifesto" className="crr-btn crr-btn-ghost" style={{ fontSize: 14, padding: '8px 14px' }}>
+          Manifesto
+        </a>
+      </div>
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button type="button" className="crr-btn crr-btn-ghost" onClick={onAuth} style={{ fontSize: 14 }}>
+          Sign in
+        </button>
+        <button type="button" className="crr-btn crr-btn-primary" onClick={onStart} style={{ fontSize: 14 }}>
+          Start assessment <ArrowRight size={16} />
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+/* ---------- Hero ---------- */
+function Proof({ label, value, unit }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+        <span className="display tnum" style={{ fontSize: 22, fontWeight: 500 }}>
+          {value}
+        </span>
+        {unit && <span style={{ fontSize: 13, color: 'var(--crr-text-faint)' }}>{unit}</span>}
+      </div>
+      <span style={{ fontSize: 12, color: 'var(--crr-text-faint)' }}>{label}</span>
+    </div>
+  );
+}
+
+function HeroSection({ onStart, headline = 'clarity' }) {
+  const variants = {
+    clarity: { lead: 'A quiet place to find your', words: ['clarity', 'direction', 'purpose', 'confidence'] },
+    engineer: { lead: 'Engineer the', words: ['path', 'skills', 'roadmap', 'story'], trail: 'you actually want.' },
+    rewritten: { lead: 'Your career,', words: ['rewritten', 'rethought', 'remapped', 'reimagined'] },
+  };
+  const v = variants[headline] || variants.clarity;
+
+  return (
+    <section style={{ position: 'relative', padding: '80px 0 64px' }}>
+      <div className="glow-field">
+        <div className="crr-glow peach" style={{ width: 500, height: 500, left: -100, top: -100 }} />
+        <div className="crr-glow sage" style={{ width: 420, height: 420, right: -80, top: 60, animationDelay: '2s' }} />
+        <div className="crr-glow butter" style={{ width: 380, height: 380, left: '40%', top: 300, animationDelay: '4s' }} />
+      </div>
+
+      <div
+        className="crr-container"
+        style={{
+          position: 'relative',
+          display: 'grid',
+          gridTemplateColumns: '1.05fr 1fr',
+          gap: 60,
+          alignItems: 'center',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+          <div className="crr-reveal">
+            <ShinyBadge>Your AI career mentor · now in public beta</ShinyBadge>
+          </div>
+
+          <h1 className="display crr-reveal" style={{ fontSize: 76, margin: 0, fontWeight: 400, animationDelay: '0.1s' }}>
+            {v.lead}
+            <br />
+            <FlipWords words={v.words} />
+            {v.trail && (
+              <>
+                <br />
+                {v.trail}
+              </>
+            )}
+          </h1>
+
+          <p
+            className="crr-reveal"
+            style={{
+              fontSize: 19,
+              color: 'var(--crr-text-dim)',
+              margin: 0,
+              maxWidth: 520,
+              lineHeight: 1.55,
+              animationDelay: '0.2s',
+            }}
+          >
+            Carrera is a calm, curious mentor that listens first. We talk through what you want, map the skills you need,
+            and build the path — one honest step at a time.
+          </p>
+
+          <div className="crr-reveal" style={{ display: 'flex', alignItems: 'center', gap: 20, animationDelay: '0.3s' }}>
+            <button
+              type="button"
+              className="crr-btn crr-btn-primary"
+              onClick={onStart}
+              style={{ padding: '14px 22px', fontSize: 16 }}
+            >
+              Begin the conversation <ArrowRight size={18} />
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--crr-text-dim)' }}>
+              <Clock size={14} /> Free · Under 5 minutes
+            </div>
+          </div>
+
+          <div
+            className="crr-reveal"
+            style={{
+              display: 'flex',
+              gap: 28,
+              paddingTop: 16,
+              borderTop: '1px solid var(--crr-line)',
+              marginTop: 8,
+              animationDelay: '0.4s',
+            }}
+          >
+            <Proof label="Career matches" value="240+" />
+            <Proof label="Students helped" value="38k" />
+            <Proof label="Avg. clarity rating" value="4.9" unit="/5" />
+          </div>
+        </div>
+
+        <div className="crr-reveal" style={{ animationDelay: '0.25s', display: 'flex', justifyContent: 'center' }}>
+          <CareerChatDemo />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Bento preview ---------- */
+function BentoMatch() {
+  return (
+    <div
+      className="crr-card lift"
+      style={{
+        padding: 22,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 14,
+        gridColumn: 'span 4',
+        background: 'var(--crr-surface-2)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: 'var(--peach)',
+            display: 'grid',
+            placeItems: 'center',
+            color: 'var(--crr-accent-deep)',
+          }}
+        >
+          <Target size={18} />
+        </div>
+        <span className="eyebrow">Career match</span>
+        <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--crr-accent)', fontWeight: 600 }}>98%</span>
+      </div>
+      <div>
+        <div className="display" style={{ fontSize: 28, fontWeight: 500 }}>
+          AI Architect
+        </div>
+        <div style={{ fontSize: 13.5, color: 'var(--crr-text-dim)', marginTop: 6 }}>
+          Designs intelligent systems, shapes products that learn.
+        </div>
+      </div>
+      <div style={{ height: 6, borderRadius: 999, background: 'var(--cream-200)', overflow: 'hidden' }}>
+        <div style={{ width: '98%', height: '100%', background: 'var(--crr-accent)' }} />
+      </div>
+    </div>
+  );
+}
+
+function BentoRoadmap() {
+  const steps = [
+    { label: 'LLM Foundations', done: true },
+    { label: 'Vector Databases', done: true },
+    { label: 'RAG Systems', done: false, current: true },
+    { label: 'Agent Orchestration', done: false },
+  ];
+  return (
+    <div
+      className="crr-card lift"
+      style={{
+        padding: 22,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 14,
+        gridColumn: 'span 5',
+        background: 'var(--crr-surface-2)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: 'var(--sage)',
+            display: 'grid',
+            placeItems: 'center',
+            color: '#2d4a30',
+          }}
+        >
+          <Map size={18} />
+        </div>
+        <span className="eyebrow">Personal roadmap</span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {steps.map((s, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: '50%',
+                background: s.done ? 'var(--crr-accent)' : s.current ? 'transparent' : 'var(--cream-200)',
+                border: s.current ? '2px dashed var(--crr-accent)' : 'none',
+                display: 'grid',
+                placeItems: 'center',
+                color: '#fff',
+                flexShrink: 0,
+              }}
+            >
+              {s.done && <Check size={12} strokeWidth={2.5} />}
+              {s.current && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--crr-accent)' }} />}
+            </div>
+            <span
+              style={{
+                fontSize: 14,
+                color: s.done ? 'var(--crr-text-dim)' : 'var(--crr-text)',
+                textDecoration: s.done ? 'line-through' : 'none',
+                fontWeight: s.current ? 500 : 400,
+              }}
+            >
+              {s.label}
+            </span>
+            {s.current && (
+              <span
+                className="eyebrow"
+                style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--crr-accent)', fontWeight: 600 }}
+              >
+                Now
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BentoStat() {
+  return (
+    <div
+      className="lift"
+      style={{
+        padding: 22,
+        gridColumn: 'span 3',
+        borderRadius: 24,
+        background: 'var(--ink-900)',
+        color: 'var(--cream-50)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      <span className="eyebrow" style={{ color: 'var(--cream-300)' }}>
+        Time to first insight
+      </span>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+          <span style={{ fontSize: 13, color: 'var(--cream-300)' }}>&lt;</span>
+          <span
+            className="display"
+            style={{ fontSize: 76, fontWeight: 400, letterSpacing: '-0.05em', color: 'var(--cream-50)' }}
+          >
+            3
+          </span>
+          <span style={{ fontSize: 16, color: 'var(--cream-200)', marginLeft: 4 }}>min</span>
+        </div>
+        <div style={{ fontSize: 12.5, color: 'var(--cream-300)', marginTop: -4 }}>
+          from first message to your first career card.
+        </div>
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          right: -30,
+          top: -30,
+          width: 140,
+          height: 140,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, var(--crr-accent-soft) 0%, transparent 70%)',
+          opacity: 0.5,
+        }}
+      />
+    </div>
+  );
+}
+
+function BentoPreviewSection() {
+  return (
+    <section style={{ padding: '24px 0 60px', position: 'relative' }}>
+      <div className="crr-container">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 16 }}>
+          <BentoMatch />
+          <BentoRoadmap />
+          <BentoStat />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Features section ---------- */
+function MatchStrip() {
+  const items = [
+    { t: 'Applied AI Engineer', m: 94 },
+    { t: 'Product Engineer', m: 87 },
+    { t: 'DevTools PM', m: 79 },
+  ];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+      {items.map((it) => (
+        <div
+          key={it.t}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '10px 14px',
+            borderRadius: 12,
+            background: 'var(--crr-surface-3)',
+          }}
+        >
+          <span style={{ fontSize: 13, fontWeight: 500 }}>{it.t}</span>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 100, height: 4, background: 'var(--cream-200)', borderRadius: 999, overflow: 'hidden' }}>
+              <div style={{ width: `${it.m}%`, height: '100%', background: 'var(--crr-accent)' }} />
+            </div>
+            <span
+              className="tnum"
+              style={{ fontSize: 12, color: 'var(--crr-text-dim)', minWidth: 32, textAlign: 'right' }}
+            >
+              {it.m}%
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CourseStrip() {
+  const tracks = [
+    { t: 'LLM Engineering', w: '6 wks', c: 'var(--peach)' },
+    { t: 'Systems Design', w: '8 wks', c: 'var(--sage)' },
+    { t: 'Product Writing', w: '3 wks', c: 'var(--butter)' },
+    { t: 'Vector DBs', w: '4 wks', c: 'var(--sky)' },
+  ];
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
+      {tracks.map((t) => (
+        <div
+          key={t.t}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '8px 14px 8px 10px',
+            borderRadius: 999,
+            background: 'var(--crr-surface-3)',
+            border: '1px solid var(--crr-line)',
+            fontSize: 13,
+          }}
+        >
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: t.c }} />
+          <span style={{ fontWeight: 500 }}>{t.t}</span>
+          <span style={{ color: 'var(--crr-text-faint)' }}>{t.w}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PortfolioStrip() {
+  const companies = ['Stripe', 'Vercel', 'Anthropic', 'Linear', 'Figma', 'Notion'];
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 6 }}>
+      {companies.map((c) => (
+        <div
+          key={c}
+          style={{
+            padding: '14px 16px',
+            borderRadius: 12,
+            background: 'var(--crr-surface-3)',
+            fontSize: 13,
+            fontWeight: 500,
+            textAlign: 'center',
+            border: '1px solid var(--crr-line)',
+          }}
+        >
+          {c}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FeatureCard({ title, subtitle, desc, icon, span, children, accent = 'peach', dark, big }) {
+  const accentBg = {
+    peach: 'var(--peach)',
+    sage: 'var(--sage)',
+    sky: 'var(--sky)',
+    lilac: 'var(--lilac)',
+    butter: 'var(--butter)',
+  }[accent];
+  return (
+    <div
+      className="crr-card lift"
+      style={{
+        gridColumn: `span ${span}`,
+        padding: 24,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 14,
+        background: dark ? 'var(--ink-900)' : 'var(--crr-surface-2)',
+        color: dark ? 'var(--cream-50)' : 'var(--crr-text)',
+        borderColor: dark ? 'transparent' : 'var(--crr-line)',
+        overflow: 'hidden',
+        position: 'relative',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 10,
+            background: accentBg,
+            color: 'var(--ink-900)',
+            display: 'grid',
+            placeItems: 'center',
+          }}
+        >
+          {icon}
+        </div>
+      </div>
+      {big ? (
+        <>
+          <div className="display" style={{ fontSize: 64, fontWeight: 500, letterSpacing: '-0.04em', lineHeight: 1 }}>
+            {title}
+          </div>
+          <div style={{ fontSize: 13.5, color: 'var(--crr-text-dim)', lineHeight: 1.5 }}>{subtitle}</div>
+        </>
+      ) : (
+        <>
+          <div
+            className="display"
+            style={{ fontSize: 24, fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1.15 }}
+          >
+            {title}
+          </div>
+          <div
+            style={{
+              fontSize: 14,
+              color: dark ? 'var(--cream-300)' : 'var(--crr-text-dim)',
+              lineHeight: 1.55,
+            }}
+          >
+            {desc}
+          </div>
+        </>
+      )}
+      {children}
+    </div>
+  );
+}
+
+const SKILL_TARGETS = [82, 64, 48, 91, 36];
+const SKILL_LABELS = ['Python', 'Systems', 'ML Ops', 'Product', 'Writing'];
+
+function SkillGapCard() {
+  const [bars, setBars] = useState([0, 0, 0, 0, 0]);
+
+  useEffect(() => {
+    const el = document.getElementById('crr-skill-gap');
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (es) => {
+        if (es[0].isIntersecting) {
+          setTimeout(() => setBars(SKILL_TARGETS), 200);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.3 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <div
+      id="crr-skill-gap"
+      className="lift"
+      style={{
+        gridColumn: 'span 6',
+        gridRow: 'span 2',
+        padding: 28,
+        borderRadius: 24,
+        background: 'var(--ink-900)',
+        color: 'var(--cream-50)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 20,
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 10,
+            background: 'var(--crr-accent)',
+            color: '#fff',
+            display: 'grid',
+            placeItems: 'center',
+          }}
+        >
+          <TrendingUp size={18} />
+        </div>
+        <span className="eyebrow" style={{ color: 'var(--cream-300)' }}>
+          Skill gap · live
+        </span>
+      </div>
+      <div
+        className="display"
+        style={{ fontSize: 34, fontWeight: 500, letterSpacing: '-0.03em', lineHeight: 1.1, color: 'var(--cream-50)' }}
+      >
+        See the distance between{' '}
+        <span className="serif-accent" style={{ color: 'var(--peach)' }}>
+          where you are
+        </span>{' '}
+        and where you want to be.
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
+        {SKILL_LABELS.map((l, i) => (
+          <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 80, fontSize: 13, color: 'var(--cream-200)' }}>{l}</div>
+            <div
+              style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.08)', borderRadius: 999, overflow: 'hidden' }}
+            >
+              <div
+                style={{
+                  width: `${bars[i]}%`,
+                  height: '100%',
+                  background: i === 3 ? 'var(--sage)' : 'var(--crr-accent)',
+                  transition: `width 1.2s cubic-bezier(.2,.7,.2,1) ${i * 0.12}s`,
+                }}
+              />
+            </div>
+            <div
+              className="tnum"
+              style={{ fontSize: 12, color: 'var(--cream-300)', minWidth: 30, textAlign: 'right' }}
+            >
+              {SKILL_TARGETS[i]}%
+            </div>
+          </div>
+        ))}
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          right: -80,
+          bottom: -80,
+          width: 260,
+          height: 260,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, var(--crr-accent) 0%, transparent 70%)',
+          opacity: 0.25,
+          filter: 'blur(40px)',
+        }}
+      />
+    </div>
+  );
+}
+
+function FeaturesSection() {
+  return (
+    <section id="features" style={{ padding: '100px 0', position: 'relative' }}>
+      <div className="crr-container">
+        <div style={{ maxWidth: 640, marginBottom: 48 }}>
+          <div className="eyebrow" style={{ marginBottom: 16 }}>
+            What you get
+          </div>
+          <h2 className="display" style={{ fontSize: 56, margin: 0, fontWeight: 400, letterSpacing: '-0.03em' }}>
+            Everything you need to move{' '}
+            <span className="serif-accent" style={{ color: 'var(--crr-accent)' }}>
+              from stuck to shipping
+            </span>
+            .
+          </h2>
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(12, 1fr)',
+            gridAutoRows: 'minmax(180px, auto)',
+            gap: 16,
+          }}
+        >
+          <SkillGapCard />
+          <FeatureCard
+            title="Career matches, ranked honestly."
+            desc="Not a popularity contest. We match based on what you actually enjoy doing on a Tuesday afternoon."
+            icon={<Target size={18} />}
+            span={5}
+            accent="peach"
+          >
+            <MatchStrip />
+          </FeatureCard>
+          <FeatureCard
+            title="4.9 / 5"
+            subtitle="average clarity rating from 8,200+ students after their first session."
+            icon={<Star size={18} />}
+            span={3}
+            accent="butter"
+            big
+          />
+          <FeatureCard
+            title="Course tracks that don't waste you."
+            desc="We sequence what to learn — and what to skip — based on where you are right now."
+            icon={<BookOpen size={18} />}
+            span={6}
+            accent="sky"
+          >
+            <CourseStrip />
+          </FeatureCard>
+          <FeatureCard
+            title="Industry portfolios."
+            desc="See the actual projects that get people hired at the places you care about."
+            icon={<Briefcase size={18} />}
+            span={6}
+            accent="lilac"
+          >
+            <PortfolioStrip />
+          </FeatureCard>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- How it works ---------- */
+function MockBubble({ text, user }) {
+  return (
+    <div
+      style={{
+        padding: '12px 16px',
+        borderRadius: 16,
+        background: user ? 'var(--crr-accent)' : 'rgba(255,255,255,0.08)',
+        color: user ? '#fff' : 'var(--cream-100)',
+        alignSelf: user ? 'flex-end' : 'flex-start',
+        maxWidth: '85%',
+        fontSize: 14,
+        animation: 'crr-riseIn 0.5s cubic-bezier(.2,.7,.2,1) both',
+      }}
+    >
+      {text}
+    </div>
+  );
+}
+
+function MockDiscovery() {
+  return (
+    <>
+      <MockBubble text="What did you do this week that felt effortless?" />
+      <MockBubble user text="Helped a friend debug their API. Three hours flew by." />
+      <MockBubble text="That tells me a lot. Let's go deeper." />
+    </>
+  );
+}
+
+function MockAssessment() {
+  const skills = [
+    { l: 'Systems thinking', v: 78 },
+    { l: 'Communication', v: 64 },
+    { l: 'Rapid prototyping', v: 86 },
+  ];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '6px 8px' }}>
+      <div style={{ fontSize: 13, color: 'var(--cream-300)' }}>Skill signals · from conversation</div>
+      {skills.map((s) => (
+        <div key={s.l} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ flex: 1, fontSize: 13 }}>{s.l}</div>
+          <div style={{ width: 140, height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 999, overflow: 'hidden' }}>
+            <div style={{ width: `${s.v}%`, height: '100%', background: 'var(--crr-accent)', transition: 'width 0.8s ease' }} />
+          </div>
+          <div className="tnum" style={{ fontSize: 12, minWidth: 30, textAlign: 'right', color: 'var(--cream-200)' }}>
+            {s.v}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MockExploration() {
+  const opts = [
+    { t: 'Applied AI Engineer', m: 94 },
+    { t: 'Developer Advocate', m: 81 },
+    { t: 'DX Product Manager', m: 76 },
+  ];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {opts.map((o) => (
+        <div
+          key={o.t}
+          style={{
+            padding: '14px 16px',
+            borderRadius: 14,
+            background: 'rgba(255,255,255,0.06)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          <div style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>{o.t}</div>
+          <div style={{ fontSize: 12, color: 'var(--peach)', fontWeight: 600 }}>{o.m}%</div>
+          <ChevronRight size={16} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MockRoadmap() {
+  const weeks = [
+    { l: 'Week 1–2 · LLM fundamentals', done: true },
+    { l: 'Week 3–4 · Build a RAG app', done: true },
+    { l: 'Week 5–6 · Ship to 10 users', current: true },
+    { l: 'Week 7–8 · Interview prep', done: false },
+  ];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {weeks.map((w) => (
+        <div key={w.l} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0' }}>
+          <div
+            style={{
+              width: 20,
+              height: 20,
+              borderRadius: '50%',
+              background: w.done ? 'var(--crr-accent)' : w.current ? 'transparent' : 'rgba(255,255,255,0.1)',
+              border: w.current ? '2px dashed var(--crr-accent)' : 'none',
+              display: 'grid',
+              placeItems: 'center',
+              flexShrink: 0,
+              color: '#fff',
+            }}
+          >
+            {w.done && <Check size={11} strokeWidth={2.5} />}
+          </div>
+          <span
+            style={{
+              fontSize: 13.5,
+              color: w.current ? 'var(--peach)' : 'var(--cream-200)',
+              fontWeight: w.current ? 500 : 400,
+            }}
+          >
+            {w.l}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HowMock({ active }) {
+  const labels = ['DISCOVERY', 'ASSESSMENT', 'EXPLORATION', 'ROADMAP'];
+  return (
+    <div
+      style={{
+        padding: 20,
+        borderRadius: 28,
+        background: 'var(--ink-900)',
+        color: 'var(--cream-50)',
+        minHeight: 460,
+        boxShadow: 'var(--crr-shadow-lg)',
+        position: 'relative',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 14,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#4a4037' }} />
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#4a4037' }} />
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#4a4037' }} />
+        <span className="eyebrow" style={{ marginLeft: 'auto', color: 'var(--cream-300)' }}>
+          {labels[active]}
+        </span>
+      </div>
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 4px' }}>
+        {active === 0 && <MockDiscovery />}
+        {active === 1 && <MockAssessment />}
+        {active === 2 && <MockExploration />}
+        {active === 3 && <MockRoadmap />}
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          left: -60,
+          bottom: -60,
+          width: 240,
+          height: 240,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, var(--crr-accent) 0%, transparent 70%)',
+          opacity: 0.25,
+          filter: 'blur(40px)',
+        }}
+      />
+    </div>
+  );
+}
+
+function HowItWorks() {
+  const steps = useMemo(
+    () => [
+      { k: 'Conversation', d: "Start by telling us what's on your mind. No forms, just talk.", icon: <MessageCircle size={20} /> },
+      { k: 'Assessment', d: 'We map your skills, interests and what gives you energy — subtly, through chat.', icon: <Brain size={20} /> },
+      { k: 'Exploration', d: 'Three to five honest career matches, each with the tradeoffs laid out.', icon: <Target size={20} /> },
+      { k: 'Roadmap', d: 'A personalized, week-by-week path. You own it. You can change it.', icon: <Map size={20} /> },
+    ],
+    [],
+  );
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setActive((a) => (a + 1) % steps.length), 3400);
+    return () => clearInterval(id);
+  }, [steps.length]);
+
+  return (
+    <section id="how" style={{ padding: '100px 0', position: 'relative' }}>
+      <div className="glow-field">
+        <div className="crr-glow sky" style={{ width: 500, height: 500, right: -120, top: 80, opacity: 0.35 }} />
+      </div>
+      <div className="crr-container" style={{ position: 'relative' }}>
+        <div style={{ maxWidth: 640, marginBottom: 56 }}>
+          <div className="eyebrow" style={{ marginBottom: 16 }}>
+            How it works
+          </div>
+          <h2 className="display" style={{ fontSize: 56, margin: 0, fontWeight: 400, letterSpacing: '-0.03em' }}>
+            Four stages.{' '}
+            <span className="serif-accent" style={{ color: 'var(--crr-accent)' }}>
+              One conversation.
+            </span>
+          </h2>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {steps.map((s, i) => (
+              <div
+                key={s.k}
+                onMouseEnter={() => setActive(i)}
+                style={{
+                  padding: '24px 20px',
+                  borderRadius: 20,
+                  background: i === active ? 'var(--crr-surface-2)' : 'transparent',
+                  border: i === active ? '1px solid var(--crr-line)' : '1px solid transparent',
+                  boxShadow: i === active ? 'var(--crr-shadow-sm)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  gap: 18,
+                  alignItems: 'flex-start',
+                }}
+              >
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 14,
+                    background: i === active ? 'var(--crr-accent)' : 'var(--crr-surface-3)',
+                    color: i === active ? '#fff' : 'var(--crr-text-dim)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    transition: 'all 0.3s ease',
+                    flexShrink: 0,
+                  }}
+                >
+                  {s.icon}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
+                    <span className="tnum" style={{ fontSize: 12, color: 'var(--crr-text-faint)', fontWeight: 500 }}>
+                      0{i + 1}
+                    </span>
+                    <span
+                      className="display"
+                      style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.02em' }}
+                    >
+                      {s.k}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 14.5, color: 'var(--crr-text-dim)', lineHeight: 1.55 }}>{s.d}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <HowMock active={active} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- CTA ---------- */
+function CTASection({ onStart }) {
+  return (
+    <section style={{ padding: '64px 0' }}>
+      <div className="crr-container">
+        <div
+          style={{
+            padding: '80px 64px',
+            borderRadius: 36,
+            background: 'var(--ink-900)',
+            color: 'var(--cream-50)',
+            position: 'relative',
+            overflow: 'hidden',
+            display: 'grid',
+            gridTemplateColumns: '1.2fr auto',
+            gap: 40,
+            alignItems: 'center',
+          }}
+        >
+          <div style={{ position: 'relative', zIndex: 2 }}>
+            <div className="eyebrow" style={{ color: 'var(--peach)', marginBottom: 20 }}>
+              One conversation away
+            </div>
+            <h2
+              className="display"
+              style={{ fontSize: 68, margin: 0, fontWeight: 400, letterSpacing: '-0.03em', lineHeight: 1.02 }}
+            >
+              Your career,
+              <br />
+              <span className="serif-accent" style={{ color: 'var(--peach)' }}>
+                re-engineered.
+              </span>
+            </h2>
+            <p style={{ fontSize: 17, color: 'var(--cream-300)', maxWidth: 440, marginTop: 20, lineHeight: 1.55 }}>
+              Join 38,000+ people who stopped guessing and started building toward something that actually fits.
+            </p>
+          </div>
+          <div
+            style={{
+              position: 'relative',
+              zIndex: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 14,
+              alignItems: 'flex-start',
+            }}
+          >
+            <button
+              type="button"
+              className="crr-btn crr-btn-primary"
+              onClick={onStart}
+              style={{ padding: '18px 28px', fontSize: 17 }}
+            >
+              Start your conversation <ArrowRight size={18} />
+            </button>
+            <div
+              style={{ fontSize: 13, color: 'var(--cream-300)', display: 'flex', alignItems: 'center', gap: 8 }}
+            >
+              <Lock size={12} /> Free to start · no credit card
+            </div>
+          </div>
+          <div
+            style={{
+              position: 'absolute',
+              right: -100,
+              top: -100,
+              width: 480,
+              height: 480,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, var(--crr-accent) 0%, transparent 70%)',
+              opacity: 0.35,
+              filter: 'blur(60px)',
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              left: -80,
+              bottom: -80,
+              width: 320,
+              height: 320,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, var(--peach) 0%, transparent 70%)',
+              opacity: 0.25,
+              filter: 'blur(50px)',
+            }}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Footer ---------- */
+function Footer() {
+  const cols = [
+    { h: 'Product', l: ['Features', 'Pricing', 'Roadmap', 'Changelog'] },
+    { h: 'Company', l: ['About', 'Manifesto', 'Careers', 'Press'] },
+    { h: 'Ecosystem', l: ['For mentors', 'For employers', 'Developer API', 'Community'] },
+  ];
+  return (
+    <footer style={{ padding: '64px 0 40px', borderTop: '1px solid var(--crr-line)' }}>
+      <div className="crr-container" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', gap: 48 }}>
+        <div>
+          <Logo />
+          <p style={{ fontSize: 14, color: 'var(--crr-text-dim)', maxWidth: 280, marginTop: 16, lineHeight: 1.6 }}>
+            A quiet mentor for loud career questions. Made with care in Brooklyn and Lisbon.
+          </p>
+        </div>
+        {cols.map((c) => (
+          <div key={c.h}>
+            <div className="eyebrow" style={{ marginBottom: 14 }}>
+              {c.h}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {c.l.map((x) => (
+                <a key={x} href="#" style={{ fontSize: 14, color: 'var(--crr-text-dim)', textDecoration: 'none' }}>
+                  {x}
+                </a>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div
+        className="crr-container"
+        style={{
+          marginTop: 48,
+          paddingTop: 24,
+          borderTop: '1px solid var(--crr-line)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          fontSize: 13,
+          color: 'var(--crr-text-faint)',
+        }}
+      >
+        <div>© 2026 Carrera Labs. All rights belong to their owners.</div>
+        <div style={{ display: 'flex', gap: 20 }}>
+          <a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>
+            Privacy
+          </a>
+          <a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>
+            Terms
+          </a>
+          <a href="#" style={{ color: 'inherit', textDecoration: 'none' }}>
+            Contact
+          </a>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ---------- Page ---------- */
+export default function LandingPage({ onSignIn, onStart, headline = 'clarity' }) {
+  const go = onStart || onSignIn || (() => {});
+  const auth = onSignIn || (() => {});
+
+  return (
+    <div className="carrera-root" style={{ minHeight: '100vh', position: 'relative', overflowX: 'hidden' }}>
+      <Navbar onStart={go} onAuth={auth} />
+      <HeroSection onStart={go} headline={headline} />
+      <BentoPreviewSection />
+      <FeaturesSection />
+      <HowItWorks />
+      <CTASection onStart={go} />
+      <Footer />
+    </div>
+  );
+}

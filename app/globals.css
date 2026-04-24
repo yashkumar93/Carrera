@@ -1,5 +1,5 @@
 /* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&display=swap');
 
 @plugin 'tailwindcss-animate';
 @import "tailwindcss";
@@ -475,4 +475,186 @@ code {
 
 .border-primary {
   border-color: var(--primary);
+}
+
+/* ============================================
+   Carrera — humanist / calm design system
+   Scoped to .carrera-root so it does not leak
+   into the rest of the app.
+   ============================================ */
+.carrera-root {
+  --cream-50: #fbf7f1;
+  --cream-100: #f5efe6;
+  --cream-200: #ecdfce;
+  --cream-300: #dcc9ae;
+  --ink-900: #1c1a17;
+  --ink-800: #2a2622;
+  --ink-700: #433d36;
+  --ink-600: #635a50;
+  --ink-500: #8a7e71;
+  --ink-400: #b4a899;
+
+  --crr-accent: #c8532c;
+  --crr-accent-soft: #e88b6a;
+  --crr-accent-deep: #9a3d1f;
+
+  --sage: #9fb89a;
+  --sky: #a9c6d8;
+  --peach: #f2c7a8;
+  --lilac: #c4b3d4;
+  --butter: #ead9a8;
+
+  --crr-surface: var(--cream-50);
+  --crr-surface-2: #ffffff;
+  --crr-surface-3: var(--cream-100);
+  --crr-text: var(--ink-900);
+  --crr-text-dim: var(--ink-600);
+  --crr-text-faint: var(--ink-500);
+  --crr-line: #e6dccb;
+  --crr-line-strong: var(--cream-300);
+
+  --crr-shadow-sm: 0 1px 2px rgba(28, 26, 23, 0.04), 0 1px 1px rgba(28, 26, 23, 0.03);
+  --crr-shadow: 0 4px 16px -4px rgba(28, 26, 23, 0.08), 0 2px 6px -2px rgba(28, 26, 23, 0.05);
+  --crr-shadow-lg: 0 30px 60px -20px rgba(28, 26, 23, 0.18), 0 10px 20px -10px rgba(28, 26, 23, 0.08);
+
+  --font-crr-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-crr-serif: 'Instrument Serif', Georgia, serif;
+
+  font-family: var(--font-crr-sans);
+  color: var(--crr-text);
+  background: var(--crr-surface);
+}
+
+/* Type */
+.carrera-root .display {
+  font-family: var(--font-crr-sans);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+}
+.carrera-root .serif-accent {
+  font-family: var(--font-crr-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.carrera-root .eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--crr-text-faint);
+  font-weight: 500;
+}
+.carrera-root .tnum { font-variant-numeric: tabular-nums; }
+
+/* Atmospheric glows */
+.carrera-root .glow-field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.carrera-root .crr-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.55;
+  mix-blend-mode: multiply;
+  animation: crr-driftGlow 18s ease-in-out infinite;
+}
+.carrera-root .crr-glow.rust   { background: var(--crr-accent-soft); }
+.carrera-root .crr-glow.sage   { background: var(--sage); }
+.carrera-root .crr-glow.sky    { background: var(--sky); }
+.carrera-root .crr-glow.peach  { background: var(--peach); }
+.carrera-root .crr-glow.lilac  { background: var(--lilac); }
+.carrera-root .crr-glow.butter { background: var(--butter); }
+
+/* Buttons */
+.carrera-root .crr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-weight: 500;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+}
+.carrera-root .crr-btn-primary {
+  background: var(--crr-accent);
+  color: #fff;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.3) inset, 0 10px 24px -10px var(--crr-accent);
+}
+.carrera-root .crr-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.3) inset, 0 14px 32px -12px var(--crr-accent);
+}
+.carrera-root .crr-btn-primary:active { transform: translateY(0); }
+.carrera-root .crr-btn-ghost { background: transparent; color: var(--crr-text); }
+.carrera-root .crr-btn-ghost:hover { background: var(--crr-surface-3); }
+
+/* Card */
+.carrera-root .crr-card {
+  background: var(--crr-surface-2);
+  border: 1px solid var(--crr-line);
+  border-radius: 24px;
+  box-shadow: var(--crr-shadow-sm);
+}
+
+/* Bubbles */
+.carrera-root .bubble {
+  padding: 14px 18px;
+  border-radius: 20px;
+  max-width: 560px;
+  line-height: 1.55;
+  font-size: 15px;
+}
+.carrera-root .bubble-bot {
+  background: var(--crr-surface-3);
+  color: var(--crr-text);
+  border-bottom-left-radius: 6px;
+}
+.carrera-root .bubble-user {
+  background: var(--crr-accent);
+  color: #fff;
+  border-bottom-right-radius: 6px;
+  margin-left: auto;
+}
+
+/* Lift */
+.carrera-root .lift { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+.carrera-root .lift:hover { transform: translateY(-2px); box-shadow: var(--crr-shadow); }
+
+/* Animations */
+@keyframes crr-riseIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes crr-driftGlow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(20px, -10px) scale(1.05); }
+}
+@keyframes crr-shine {
+  0%         { transform: translateX(-100%); }
+  60%, 100%  { transform: translateX(100%); }
+}
+@keyframes crr-tping {
+  0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+  40%           { opacity: 1;   transform: translateY(-3px); }
+}
+
+.carrera-root .crr-reveal { animation: crr-riseIn 0.7s cubic-bezier(.2,.7,.2,1) both; }
+
+/* Container */
+.carrera-root .crr-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 32px;
 }
