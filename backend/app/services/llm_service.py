@@ -95,5 +95,7 @@ def _get_embedding_model():
 
 def embed_text(text: str) -> List[float]:
     model = _get_embedding_model()
+    if model is None:
+        raise RuntimeError("Embedding model not available")
     vector = model.encode(text[:4000], normalize_embeddings=True)
     return vector.tolist()
