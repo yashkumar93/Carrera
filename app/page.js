@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ChatInterface from '../components/ChatInterface';
 import LandingPage from '../components/LandingPage';
 import AuthPage from '../components/AuthPage';
@@ -11,13 +11,16 @@ import apiService from '../lib/api';
 export default function Home() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [hasEntered, setHasEntered] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   // null = not yet checked, false = needs onboarding, true = done
   const [onboardingComplete, setOnboardingComplete] = useState(null);
+  const hadUserRef = useRef(false);
 
   useEffect(() => {
     const unsubscribe = onAuthChange(async (firebaseUser) => {
       if (firebaseUser) {
+        hadUserRef.current = true;
         setUser(firebaseUser);
         setShowAuth(false);
 
@@ -34,11 +37,26 @@ export default function Home() {
       } else {
         setUser(null);
         setOnboardingComplete(null);
+        if (hadUserRef.current) {
+          setHasEntered(false);
+          setShowAuth(false);
+          hadUserRef.current = false;
+        }
       }
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
+
+  const startFlow = () => {
+    setHasEntered(true);
+    setShowAuth(!user);
+  };
+
+  // ── Landing entry ────────────────────────────────────────────────────────────
+  if (!hasEntered) {
+    return <LandingPage onSignIn={startFlow} onStart={startFlow} />;
+  }
 
   // ── Loading ──────────────────────────────────────────────────────────────────
   if (loading) {
@@ -108,8 +126,15 @@ export default function Home() {
 
   // ── Unauthenticated ──────────────────────────────────────────────────────────
   if (showAuth) {
-    return <AuthPage onBack={() => setShowAuth(false)} />;
+    return (
+      <AuthPage
+        onBack={() => {
+          setShowAuth(false);
+          setHasEntered(false);
+        }}
+      />
+    );
   }
 
-  return <LandingPage onSignIn={() => setShowAuth(true)} />;
+  return <LandingPage onSignIn={startFlow} onStart={startFlow} />;
 }

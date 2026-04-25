@@ -1,560 +1,804 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ArrowRight,
+  ArrowUp,
+  Briefcase,
+  Check,
+  Leaf,
+  Lock,
+  Sparkles,
+  Star,
+  Target,
+  Users,
+} from 'lucide-react';
 import apiService from '../lib/api';
-import { ArrowUp, Sparkles, CheckCircle, User, GraduationCap, Briefcase, Target, MapPin } from 'lucide-react';
 
-// ─── Inline styles (no external deps) ────────────────────────────────────────
+/* ---------- Question script ---------- */
+const OB_STEPS = [
+  {
+    q: "Hi — I'm Carrera.",
+    q2: 'Before we begin, what should I call you?',
+    k: 'name',
+    placeholder: 'Your first name…',
+    hint: 'Just a name. A nickname is fine.',
+  },
+  {
+    q: 'Nice to meet you, {name}.',
+    q2: "What's the story so far — school, work, or somewhere in between?",
+    k: 'background',
+    placeholder: 'A sentence or two is plenty.',
+    hint: "No résumé. Just how you'd say it to a friend.",
+  },
+  {
+    q: "Let's rewind to this week.",
+    q2: 'What did you do that felt easy or energizing — even if it seemed small?',
+    k: 'energized',
+    placeholder: 'Anything. Debugging, cooking, helping a friend…',
+    hint: "Small moments count. That's often where the signal is.",
+  },
+  {
+    q: 'Flip side.',
+    q2: 'What drained you? No judgment — this just helps me steer away.',
+    k: 'drained',
+    placeholder: 'Meetings, specific tasks, a kind of work…',
+    hint: 'Be honest. We all have one.',
+  },
+  {
+    q: 'Now dream a little.',
+    q2: 'If you had three uninterrupted months to build one thing, what would you build?',
+    k: 'build',
+    placeholder: 'A product, a book, a community, a skill…',
+    hint: "We'll make it concrete later. For now, go big.",
+  },
+  {
+    q: 'On your mind already.',
+    q2: "Any careers or roles you're drawn to? Even a vague vibe works.",
+    k: 'careers',
+    placeholder: 'e.g. "something AI-adjacent, but not research"',
+    hint: "Contradictions are fine. I'll untangle them.",
+  },
+  {
+    q: 'Last one, and the hardest.',
+    q2: 'What does a good career look like to you, honestly?',
+    k: 'values',
+    placeholder: 'Money, meaning, flexibility, prestige, something else…',
+    hint: 'Write freely. Nothing is wrong here.',
+  },
+];
 
-const styles = {
-  root: {
-    minHeight: '100vh',
-    background: 'linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 50%, #16213e 100%)',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    padding: '0',
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif",
-    color: '#ececec',
-  },
-  header: {
-    width: '100%',
-    padding: '1rem 1.5rem',
-    borderBottom: '1px solid rgba(255,255,255,0.08)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem',
-    background: 'rgba(0,0,0,0.2)',
-    backdropFilter: 'blur(10px)',
-  },
-  logo: {
-    fontSize: '1.1rem',
-    fontWeight: '700',
-    letterSpacing: '-0.02em',
-    background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-  },
-  badge: {
-    fontSize: '0.7rem',
-    fontWeight: '600',
-    padding: '0.2rem 0.6rem',
-    borderRadius: '999px',
-    background: 'rgba(124, 58, 237, 0.2)',
-    border: '1px solid rgba(124, 58, 237, 0.4)',
-    color: '#a78bfa',
-    letterSpacing: '0.05em',
-    textTransform: 'uppercase',
-  },
-  chatContainer: {
-    width: '100%',
-    maxWidth: '680px',
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    padding: '1.5rem 1rem',
-    gap: '0',
-    overflowY: 'auto',
-    paddingBottom: '0',
-  },
-  progressBar: {
-    width: '100%',
-    maxWidth: '680px',
-    padding: '0.75rem 1rem 0',
-  },
-  progressTrack: {
-    height: '3px',
-    background: 'rgba(255,255,255,0.1)',
-    borderRadius: '2px',
-    overflow: 'hidden',
-  },
-  progressFill: (pct) => ({
-    height: '100%',
-    width: `${pct}%`,
-    background: 'linear-gradient(90deg, #7c3aed, #a855f7)',
-    borderRadius: '2px',
-    transition: 'width 0.6s ease',
-  }),
-  progressLabel: {
-    fontSize: '0.75rem',
-    color: 'rgba(255,255,255,0.4)',
-    marginTop: '0.4rem',
-  },
-  messageRow: (isUser) => ({
-    display: 'flex',
-    justifyContent: isUser ? 'flex-end' : 'flex-start',
-    marginBottom: '1rem',
-    gap: '0.625rem',
-    alignItems: 'flex-end',
-    animation: isUser ? 'slideInRight 0.35s ease-out' : 'slideInLeft 0.4s ease-out',
-    animationFillMode: 'both',
-  }),
-  avatarBot: {
-    width: '32px',
-    height: '32px',
-    borderRadius: '50%',
-    background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    fontSize: '0.875rem',
-    fontWeight: '700',
-    color: '#fff',
-    animation: 'pulseGlow 2.5s ease-in-out infinite',
-  },
-  bubbleBot: {
-    maxWidth: '520px',
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: '18px 18px 18px 4px',
-    padding: '0.875rem 1rem',
-    fontSize: '0.9375rem',
-    lineHeight: '1.6',
-    color: '#ececec',
-  },
-  bubbleUser: {
-    maxWidth: '400px',
-    background: 'rgba(124, 58, 237, 0.25)',
-    border: '1px solid rgba(124, 58, 237, 0.4)',
-    borderRadius: '18px 18px 4px 18px',
-    padding: '0.75rem 1rem',
-    fontSize: '0.9375rem',
-    lineHeight: '1.6',
-    color: '#ececec',
-  },
-  typingDots: {
-    display: 'flex',
-    gap: '4px',
-    padding: '4px 0',
-    alignItems: 'center',
-  },
-  dot: (delay) => ({
-    width: '7px',
-    height: '7px',
-    borderRadius: '50%',
-    background: 'rgba(255,255,255,0.5)',
-    animation: 'bounce 1.4s infinite ease-in-out',
-    animationDelay: delay,
-  }),
-  inputArea: {
-    width: '100%',
-    maxWidth: '680px',
-    padding: '1rem',
-    background: 'rgba(0,0,0,0.3)',
-    borderTop: '1px solid rgba(255,255,255,0.08)',
-    display: 'flex',
-    gap: '0.625rem',
-    alignItems: 'flex-end',
-  },
-  textarea: {
-    flex: 1,
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: '12px',
-    padding: '0.75rem 1rem',
-    color: '#ececec',
-    fontSize: '0.9375rem',
-    lineHeight: '1.5',
-    resize: 'none',
-    minHeight: '48px',
-    maxHeight: '160px',
-    outline: 'none',
-    fontFamily: 'inherit',
-    transition: 'border-color 0.2s',
-  },
-  sendBtn: (disabled) => ({
-    width: '40px',
-    height: '40px',
-    borderRadius: '50%',
-    background: disabled ? 'rgba(255,255,255,0.1)' : 'linear-gradient(135deg, #7c3aed, #a855f7)',
-    border: 'none',
-    color: disabled ? 'rgba(255,255,255,0.3)' : '#fff',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    transition: 'all 0.2s',
-  }),
-
-  // Profile review card styles
-  reviewOverlay: {
-    position: 'fixed',
-    inset: 0,
-    background: 'rgba(0,0,0,0.7)',
-    backdropFilter: 'blur(8px)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '1rem',
-    zIndex: 50,
-  },
-  reviewCard: {
-    background: '#1a1a2e',
-    border: '1px solid rgba(124, 58, 237, 0.3)',
-    borderRadius: '20px',
-    padding: '2rem',
-    maxWidth: '520px',
-    width: '100%',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-  },
-  reviewTitle: {
-    fontSize: '1.4rem',
-    fontWeight: '700',
-    marginBottom: '0.25rem',
-    background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-  },
-  reviewSubtitle: {
-    fontSize: '0.875rem',
-    color: 'rgba(255,255,255,0.5)',
-    marginBottom: '1.5rem',
-  },
-  profileGrid: {
-    display: 'grid',
-    gap: '0.75rem',
-    marginBottom: '1.75rem',
-  },
-  profileRow: {
-    display: 'flex',
-    gap: '0.75rem',
-    alignItems: 'flex-start',
-    padding: '0.75rem 1rem',
-    background: 'rgba(255,255,255,0.04)',
-    borderRadius: '10px',
-    border: '1px solid rgba(255,255,255,0.07)',
-  },
-  profileIcon: {
-    color: '#a78bfa',
-    flexShrink: 0,
-    marginTop: '1px',
-  },
-  profileLabel: {
-    fontSize: '0.75rem',
-    color: 'rgba(255,255,255,0.45)',
-    marginBottom: '0.15rem',
-    fontWeight: '600',
-    letterSpacing: '0.04em',
-    textTransform: 'uppercase',
-  },
-  profileValue: {
-    fontSize: '0.9rem',
-    color: '#ececec',
-    lineHeight: '1.4',
-  },
-  startBtn: {
-    width: '100%',
-    padding: '0.875rem',
-    background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
-    border: 'none',
-    borderRadius: '12px',
-    color: '#fff',
-    fontSize: '1rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-    transition: 'opacity 0.2s',
-  },
-  skipBtn: {
-    width: '100%',
-    marginTop: '0.75rem',
-    padding: '0.625rem',
-    background: 'transparent',
-    border: 'none',
-    color: 'rgba(255,255,255,0.35)',
-    fontSize: '0.875rem',
-    cursor: 'pointer',
-    transition: 'color 0.2s',
-  },
-};
-
-// ─── Keyframes injected once ─────────────────────────────────────────────────
-const KEYFRAMES = `
-@keyframes bounce {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-  30% { transform: translateY(-8px); opacity: 1; }
-}
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-24px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(24px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
-  50% { box-shadow: 0 0 12px 2px rgba(124, 58, 237, 0.25); }
-}
-`;
-
-// ─── Profile review card ──────────────────────────────────────────────────────
-
-function ProfileReviewCard({ profile, onConfirm, onSkip }) {
-  const fields = [
-    {
-      icon: <GraduationCap size={16} />,
-      label: 'Education',
-      value: profile?.education || 'Not specified',
-    },
-    {
-      icon: <Target size={16} />,
-      label: 'Career Interests',
-      value: Array.isArray(profile?.career_interests)
-        ? profile.career_interests.join(', ')
-        : profile?.career_interests || 'Not specified',
-    },
-    {
-      icon: <Briefcase size={16} />,
-      label: 'Skills',
-      value: Array.isArray(profile?.skills)
-        ? profile.skills.join(', ')
-        : profile?.skills || 'Not specified',
-    },
-    {
-      icon: <User size={16} />,
-      label: 'Experience Level',
-      value: profile?.experience_level || 'Not specified',
-    },
-    {
-      icon: <MapPin size={16} />,
-      label: 'About You',
-      value: profile?.bio || 'Not specified',
-    },
-  ];
-
+/* ---------- Logo ---------- */
+function Logo() {
   return (
-    <div style={styles.reviewOverlay}>
-      <div style={styles.reviewCard}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.5rem' }}>
-          <CheckCircle size={22} color="#a78bfa" />
-          <div style={styles.reviewTitle}>Your Profile is Ready</div>
-        </div>
-        <div style={styles.reviewSubtitle}>
-          Here's what I learned about you. This will be used to personalize your career guidance.
-        </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: 10,
+          background: 'linear-gradient(135deg, var(--crr-accent), var(--peach))',
+          display: 'grid',
+          placeItems: 'center',
+          boxShadow: '0 2px 8px -2px var(--crr-accent)',
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+          <path d="M12 3v18" />
+          <path d="m5 10 7-7 7 7" />
+          <circle cx="12" cy="17" r="2" />
+        </svg>
+      </div>
+      <span className="display" style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.02em' }}>
+        carrera
+      </span>
+    </div>
+  );
+}
 
-        <div style={styles.profileGrid}>
-          {fields.map((f) => (
-            <div key={f.label} style={styles.profileRow}>
-              <span style={styles.profileIcon}>{f.icon}</span>
-              <div>
-                <div style={styles.profileLabel}>{f.label}</div>
-                <div style={styles.profileValue}>{f.value}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <button style={styles.startBtn} onClick={onConfirm}>
-          <Sparkles size={16} />
-          Start My Career Journey
-        </button>
-        <button style={styles.skipBtn} onClick={onSkip}>
-          Edit later in settings
-        </button>
+/* ---------- Progress dots ---------- */
+function OBProgress({ step, total }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <span className="eyebrow tnum" style={{ fontSize: 11 }}>
+        {String(step + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
+      </span>
+      <div style={{ display: 'flex', gap: 6 }}>
+        {Array.from({ length: total }).map((_, i) => {
+          const done = i < step;
+          const active = i === step;
+          return (
+            <div
+              key={i}
+              style={{
+                width: active ? 24 : 8,
+                height: 8,
+                borderRadius: 999,
+                background: done || active ? 'var(--crr-accent)' : 'var(--cream-200)',
+                transition: 'width 0.45s cubic-bezier(.2,.7,.2,1), background 0.3s ease',
+              }}
+            />
+          );
+        })}
       </div>
     </div>
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+/* ---------- Answer pill (past answer collapsed) ---------- */
+function OBAnswerPill({ question, answer, onEdit, delay }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 14,
+        padding: '14px 18px',
+        borderRadius: 18,
+        background: 'var(--crr-surface-2)',
+        border: '1px solid var(--crr-line)',
+        boxShadow: 'var(--crr-shadow-sm)',
+        animation: `obSlideIn 0.6s cubic-bezier(.2,.7,.2,1) ${delay}s both`,
+      }}
+    >
+      <div
+        style={{
+          width: 24,
+          height: 24,
+          borderRadius: '50%',
+          background: 'var(--crr-accent)',
+          color: '#fff',
+          display: 'grid',
+          placeItems: 'center',
+          flexShrink: 0,
+          marginTop: 1,
+        }}
+      >
+        <Check size={13} strokeWidth={2.6} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          className="eyebrow"
+          style={{ fontSize: 10, color: 'var(--crr-text-faint)', marginBottom: 2 }}
+        >
+          {question}
+        </div>
+        <div style={{ fontSize: 14.5, color: 'var(--crr-text)', lineHeight: 1.5 }}>{answer}</div>
+      </div>
+      <button
+        type="button"
+        onClick={onEdit}
+        style={{
+          fontSize: 12,
+          color: 'var(--crr-text-faint)',
+          padding: '4px 8px',
+          borderRadius: 6,
+          transition: 'color 0.15s ease',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--crr-accent)')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--crr-text-faint)')}
+      >
+        Edit
+      </button>
+    </div>
+  );
+}
 
-export default function OnboardingChat({ onComplete }) {
-  const [messages, setMessages] = useState([]);
-  const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [userMessageCount, setUserMessageCount] = useState(0);
-  const [onboardingDone, setOnboardingDone] = useState(false);
-  const [profileData, setProfileData] = useState(null);
+/* ---------- Listening dots ---------- */
+function OBReflecting({ label = 'listening…' }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '8px 0',
+        animation: 'obFadeIn 0.4s ease both',
+      }}
+    >
+      <div style={{ display: 'flex', gap: 5 }}>
+        {[0, 0.15, 0.3].map((d, i) => (
+          <span
+            key={i}
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              background: 'var(--crr-accent)',
+              animation: 'obPulse 1.3s ease-in-out infinite',
+              animationDelay: `${d}s`,
+            }}
+          />
+        ))}
+      </div>
+      <span style={{ fontSize: 13, color: 'var(--crr-text-faint)', fontStyle: 'italic' }}>{label}</span>
+    </div>
+  );
+}
 
-  const messagesEndRef = useRef(null);
-  const textareaRef = useRef(null);
+/* ---------- Active question card ---------- */
+function OBQuestionCard({ step, data, value, setValue, onSubmit, answersCount, disabled }) {
+  const inputRef = useRef(null);
+  const [focused, setFocused] = useState(false);
 
-  // Inject keyframes once
   useEffect(() => {
-    const id = 'onboarding-keyframes';
-    if (!document.getElementById(id)) {
-      const style = document.createElement('style');
-      style.id = id;
-      style.textContent = KEYFRAMES;
-      document.head.appendChild(style);
-    }
-  }, []);
-
-  // Trigger the AI's opening greeting on mount
-  useEffect(() => {
-    triggerGreeting();
-  }, []);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Auto-resize textarea
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
-    }
-  }, [inputValue]);
-
-  const addMessage = (content, isUser) => {
-    setMessages((prev) => [
-      ...prev,
-      { id: Date.now() + Math.random(), content, isUser, timestamp: Date.now() },
-    ]);
-  };
-
-  async function triggerGreeting() {
-    setIsLoading(true);
-    try {
-      const data = await apiService.sendMessage('start', null, true);
-      addMessage(data.response, false);
-    } catch (err) {
-      addMessage(
-        "Hi! I'm Careerra, your AI career advisor. I'd love to learn a bit about you first. What's your current situation — are you a student, recent graduate, or working professional?",
-        false,
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function handleSend(text = inputValue) {
-    const trimmed = text.trim();
-    if (!trimmed || isLoading) return;
-
-    addMessage(trimmed, true);
-    setInputValue('');
-    setUserMessageCount((c) => c + 1);
-    setIsLoading(true);
-
-    try {
-      const data = await apiService.sendMessage(trimmed, null, true);
-
-      addMessage(data.response, false);
-
-      if (data.onboarding_complete && data.profile_data) {
-        setProfileData(data.profile_data);
-        setOnboardingDone(true);
-      }
-    } catch (err) {
-      addMessage(
-        "I'm sorry, something went wrong. Please try again.",
-        false,
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  // Progress: assume ~7 exchanges to complete onboarding
-  const progressPct = Math.min(Math.round((userMessageCount / 7) * 100), 95);
+    const t = setTimeout(() => inputRef.current?.focus(), 450);
+    return () => clearTimeout(t);
+  }, [step]);
 
   return (
-    <div style={styles.root}>
-      {/* Header */}
-      <div style={styles.header}>
-        <div style={styles.logo}>Careerra</div>
-        <div style={styles.badge}>Getting to know you</div>
+    <div
+      key={step}
+      style={{
+        animation: 'obQuestionIn 0.7s cubic-bezier(.2,.7,.2,1) both',
+        position: 'relative',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, var(--crr-accent), var(--peach))',
+            color: '#fff',
+            display: 'grid',
+            placeItems: 'center',
+            boxShadow: '0 6px 18px -6px var(--crr-accent)',
+            animation: 'obFloat 3.5s ease-in-out infinite',
+          }}
+        >
+          <Sparkles size={16} strokeWidth={2.4} />
+        </div>
+        <span className="eyebrow" style={{ color: 'var(--crr-accent)' }}>
+          Question {step + 1}
+        </span>
       </div>
 
-      {/* Progress bar */}
-      <div style={styles.progressBar}>
-        <div style={styles.progressTrack}>
-          <div style={styles.progressFill(progressPct)} />
+      <h2
+        className="display"
+        style={{
+          fontSize: 44,
+          fontWeight: 400,
+          margin: 0,
+          letterSpacing: '-0.03em',
+          lineHeight: 1.08,
+        }}
+      >
+        <span style={{ display: 'block', animation: 'obLineIn 0.8s cubic-bezier(.2,.7,.2,1) 0.1s both' }}>
+          {data.q}
+        </span>
+        <span
+          className="serif-accent"
+          style={{
+            display: 'block',
+            color: 'var(--crr-accent)',
+            marginTop: 6,
+            animation: 'obLineIn 0.8s cubic-bezier(.2,.7,.2,1) 0.25s both',
+          }}
+        >
+          {data.q2}
+        </span>
+      </h2>
+
+      <p
+        style={{
+          fontSize: 14,
+          color: 'var(--crr-text-dim)',
+          marginTop: 14,
+          marginBottom: 0,
+          animation: 'obFadeIn 0.7s ease 0.5s both',
+        }}
+      >
+        {data.hint}
+      </p>
+
+      <div style={{ marginTop: 28, animation: 'obFadeIn 0.7s ease 0.6s both' }}>
+        <div
+          style={{
+            padding: '4px 6px 4px 22px',
+            borderRadius: 22,
+            background: 'var(--crr-surface-2)',
+            border: `1px solid ${focused ? 'var(--crr-accent)' : 'var(--crr-line)'}`,
+            boxShadow: focused
+              ? '0 0 0 4px rgba(200,83,44,0.10), 0 8px 24px -12px rgba(28,26,23,0.15)'
+              : '0 8px 24px -12px rgba(28,26,23,0.12)',
+            display: 'flex',
+            alignItems: 'flex-end',
+            gap: 10,
+            transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+          }}
+        >
+          <textarea
+            ref={inputRef}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                onSubmit();
+              }
+            }}
+            placeholder={data.placeholder}
+            rows={1}
+            disabled={disabled}
+            style={{
+              flex: 1,
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              fontSize: 16,
+              color: 'var(--crr-text)',
+              resize: 'none',
+              padding: '16px 0',
+              minHeight: 28,
+              maxHeight: 180,
+              fontFamily: 'inherit',
+              lineHeight: 1.55,
+            }}
+          />
+          <button
+            type="button"
+            onClick={onSubmit}
+            disabled={!value.trim() || disabled}
+            aria-label="Continue"
+            style={{
+              width: 44,
+              height: 44,
+              margin: 4,
+              borderRadius: '50%',
+              background: value.trim() ? 'var(--crr-accent)' : 'var(--cream-200)',
+              color: value.trim() ? '#fff' : 'var(--crr-text-faint)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s ease',
+              flexShrink: 0,
+              boxShadow: value.trim() ? '0 6px 16px -6px var(--crr-accent)' : 'none',
+              transform: value.trim() ? 'scale(1)' : 'scale(0.92)',
+              border: 'none',
+              cursor: value.trim() && !disabled ? 'pointer' : 'not-allowed',
+            }}
+          >
+            <ArrowUp size={18} strokeWidth={2.4} />
+          </button>
         </div>
-        <div style={styles.progressLabel}>
-          {progressPct < 95
-            ? `Step ${Math.max(userMessageCount, 1)} of ~7 — Building your profile`
-            : 'Almost done — finishing your profile…'}
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            marginTop: 14,
+            fontSize: 12,
+            color: 'var(--crr-text-faint)',
+            flexWrap: 'wrap',
+          }}
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <kbd
+              style={{
+                padding: '2px 8px',
+                borderRadius: 6,
+                background: 'var(--crr-surface-3)',
+                border: '1px solid var(--crr-line)',
+                fontSize: 11,
+                fontFamily: 'inherit',
+              }}
+            >
+              Enter
+            </kbd>{' '}
+            to continue
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <kbd
+              style={{
+                padding: '2px 8px',
+                borderRadius: 6,
+                background: 'var(--crr-surface-3)',
+                border: '1px solid var(--crr-line)',
+                fontSize: 11,
+                fontFamily: 'inherit',
+              }}
+            >
+              ⇧ Enter
+            </kbd>{' '}
+            for a new line
+          </span>
+          {answersCount > 0 && (
+            <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Leaf size={12} /> {answersCount} answer{answersCount === 1 ? '' : 's'} saved
+            </span>
+          )}
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Chat messages */}
-      <div style={{ ...styles.chatContainer, flex: 1 }}>
-        {messages.map((msg) => (
-          <div key={msg.id} className="onboarding-msg" style={styles.messageRow(msg.isUser)}>
-            {!msg.isUser && (
-              <div style={styles.avatarBot}>C</div>
-            )}
-            <div style={msg.isUser ? styles.bubbleUser : styles.bubbleBot}>
-              <ReactMarkdown
-                components={{
-                  p: ({ node, ...props }) => (
-                    <p style={{ margin: '0 0 0.5em 0' }} {...props} />
-                  ),
-                  strong: ({ node, ...props }) => (
-                    <strong style={{ color: '#c4b5fd' }} {...props} />
-                  ),
+/* ---------- Finale ---------- */
+function OBFinale({ answers, onDone, submitting }) {
+  const [revealed, setRevealed] = useState(0);
+  const summary = useMemo(
+    () => [
+      { icon: <Users size={14} />, label: 'Who you are', body: `${answers.name || 'Friend'} · ${answers.background || '—'}` },
+      { icon: <Sparkles size={14} />, label: 'Energizes you', body: answers.energized || '—' },
+      { icon: <Leaf size={14} />, label: 'Drains you', body: answers.drained || '—' },
+      { icon: <Target size={14} />, label: 'Wants to build', body: answers.build || '—' },
+      { icon: <Briefcase size={14} />, label: 'On your mind', body: answers.careers || '—' },
+      { icon: <Star size={14} />, label: 'What matters', body: answers.values || '—' },
+    ],
+    [answers],
+  );
+
+  useEffect(() => {
+    if (revealed >= summary.length) return;
+    const t = setTimeout(() => setRevealed((r) => r + 1), revealed === 0 ? 800 : 320);
+    return () => clearTimeout(t);
+  }, [revealed, summary.length]);
+
+  return (
+    <div style={{ animation: 'obQuestionIn 0.8s cubic-bezier(.2,.7,.2,1) both' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, var(--crr-accent), var(--peach))',
+            color: '#fff',
+            display: 'grid',
+            placeItems: 'center',
+            boxShadow: '0 6px 18px -6px var(--crr-accent)',
+          }}
+        >
+          <Check size={16} strokeWidth={2.6} />
+        </div>
+        <span className="eyebrow" style={{ color: 'var(--crr-accent)' }}>
+          Here&apos;s what I heard
+        </span>
+      </div>
+
+      <h2
+        className="display"
+        style={{
+          fontSize: 44,
+          fontWeight: 400,
+          margin: 0,
+          letterSpacing: '-0.03em',
+          lineHeight: 1.08,
+        }}
+      >
+        A first sketch of{' '}
+        <span className="serif-accent" style={{ color: 'var(--crr-accent)' }}>
+          you
+        </span>
+        , {answers.name || 'friend'}.
+      </h2>
+      <p style={{ fontSize: 15, color: 'var(--crr-text-dim)', marginTop: 14, marginBottom: 26 }}>
+        This will keep getting sharper as we talk. Edit anything that feels wrong.
+      </p>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 12,
+          marginBottom: 28,
+        }}
+      >
+        {summary.map((s, i) => {
+          const shown = i < revealed;
+          return (
+            <div
+              key={s.label}
+              style={{
+                padding: 18,
+                borderRadius: 18,
+                background: 'var(--crr-surface-2)',
+                border: '1px solid var(--crr-line)',
+                opacity: shown ? 1 : 0,
+                transform: shown ? 'translateY(0) scale(1)' : 'translateY(12px) scale(0.98)',
+                transition: `opacity 0.6s cubic-bezier(.2,.7,.2,1) ${i * 0.04}s, transform 0.6s cubic-bezier(.2,.7,.2,1) ${i * 0.04}s`,
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginBottom: 6,
+                  color: 'var(--crr-accent)',
                 }}
               >
-                {msg.content}
-              </ReactMarkdown>
-            </div>
-          </div>
-        ))}
-
-        {isLoading && (
-          <div className="onboarding-msg" style={styles.messageRow(false)}>
-            <div style={styles.avatarBot}>C</div>
-            <div style={styles.bubbleBot}>
-              <div style={styles.typingDots}>
-                <div style={styles.dot('0s')} />
-                <div style={styles.dot('0.2s')} />
-                <div style={styles.dot('0.4s')} />
+                {s.icon}
+                <span className="eyebrow" style={{ color: 'var(--crr-text-faint)' }}>
+                  {s.label}
+                </span>
               </div>
+              <div style={{ fontSize: 14, color: 'var(--crr-text)', lineHeight: 1.5 }}>{s.body}</div>
             </div>
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
+          );
+        })}
       </div>
 
-      {/* Input */}
-      <div style={styles.inputArea}>
-        <textarea
-          ref={textareaRef}
-          style={styles.textarea}
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Type your response…"
-          rows={1}
-          disabled={isLoading || onboardingDone}
-        />
-        <button
-          style={styles.sendBtn(!inputValue.trim() || isLoading || onboardingDone)}
-          onClick={() => handleSend()}
-          disabled={!inputValue.trim() || isLoading || onboardingDone}
+      <button
+        type="button"
+        className="crr-btn crr-btn-primary"
+        onClick={onDone}
+        disabled={submitting}
+        style={{
+          padding: '16px 24px',
+          fontSize: 16,
+          opacity: revealed >= summary.length ? (submitting ? 0.7 : 1) : 0,
+          transform: revealed >= summary.length ? 'translateY(0)' : 'translateY(8px)',
+          transition: 'opacity 0.6s ease, transform 0.6s ease',
+          cursor: submitting ? 'not-allowed' : 'pointer',
+        }}
+      >
+        {submitting ? 'Saving…' : (<>Start my career journey <ArrowRight size={18} /></>)}
+      </button>
+    </div>
+  );
+}
+
+/* ---------- Main page ---------- */
+export default function OnboardingChat({ onComplete }) {
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [input, setInput] = useState('');
+  const [reflecting, setReflecting] = useState(false);
+  const [finished, setFinished] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const scrollRef = useRef(null);
+  const backendGreetedRef = useRef(false);
+  const backendProfileRef = useRef(null);
+
+  const current = OB_STEPS[step];
+
+  const promptFor = (s) => s.q2.replace('{name}', answers.name || 'friend');
+  const promptLeadFor = (s) => s.q.replace('{name}', answers.name || 'friend');
+
+  // Kick off backend onboarding session once so profile state stays in sync.
+  useEffect(() => {
+    if (backendGreetedRef.current) return;
+    backendGreetedRef.current = true;
+    (async () => {
+      try {
+        await apiService.sendMessage('start', null, true);
+      } catch {
+        // Non-fatal — UI still works and the final submit will retry.
+      }
+    })();
+  }, []);
+
+  const submit = async () => {
+    const trimmed = input.trim();
+    if (!trimmed || reflecting || submitting) return;
+
+    const next = { ...answers, [current.k]: trimmed };
+    setAnswers(next);
+    setInput('');
+    setReflecting(true);
+    setError('');
+
+    // Fire-and-forget so the backend can keep building its profile signal.
+    (async () => {
+      try {
+        const data = await apiService.sendMessage(trimmed, null, true);
+        if (data?.onboarding_complete && data?.profile_data) {
+          backendProfileRef.current = data.profile_data;
+        }
+      } catch {
+        // Ignore — we'll retry at finale.
+      }
+    })();
+
+    setTimeout(() => {
+      setReflecting(false);
+      if (step + 1 >= OB_STEPS.length) {
+        setFinished(true);
+      } else {
+        setStep(step + 1);
+      }
+    }, 900);
+  };
+
+  const editAnswer = (idx) => {
+    const k = OB_STEPS[idx].k;
+    setInput(answers[k] || '');
+    const clone = { ...answers };
+    delete clone[k];
+    setAnswers(clone);
+    setStep(idx);
+    setFinished(false);
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }, [step, reflecting, finished]);
+
+  const handleDone = async () => {
+    setSubmitting(true);
+    setError('');
+    try {
+      // If backend hasn't already marked complete, nudge it with a final summary message.
+      if (!backendProfileRef.current) {
+        try {
+          const summary = Object.entries(answers)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join('\n');
+          const data = await apiService.sendMessage(
+            `Here's a summary of what I shared:\n${summary}`,
+            null,
+            true,
+          );
+          if (data?.profile_data) backendProfileRef.current = data.profile_data;
+        } catch {
+          // Ignore — onComplete still fires so the user isn't blocked.
+        }
+      }
+      onComplete?.(backendProfileRef.current || answers);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const answerCount = Object.keys(answers).length;
+
+  return (
+    <div
+      className="carrera-root"
+      style={{
+        minHeight: '100vh',
+        position: 'relative',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <div className="glow-field">
+        <div className="crr-glow peach" style={{ width: 560, height: 560, left: -180, top: -150 }} />
+        <div className="crr-glow sage" style={{ width: 480, height: 480, right: -140, top: 100, animationDelay: '2s' }} />
+        <div className="crr-glow butter" style={{ width: 420, height: 420, left: '30%', bottom: -150, animationDelay: '4s' }} />
+        <div className="crr-glow lilac" style={{ width: 360, height: 360, right: 100, bottom: -100, animationDelay: '6s', opacity: 0.4 }} />
+      </div>
+
+      <div
+        style={{
+          padding: '20px 32px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16,
+          position: 'relative',
+          zIndex: 2,
+          flexWrap: 'wrap',
+        }}
+      >
+        <Logo />
+        <div
+          style={{
+            padding: '5px 12px 5px 8px',
+            borderRadius: 999,
+            background: 'var(--crr-surface-2)',
+            border: '1px solid var(--crr-line)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
         >
-          <ArrowUp size={16} />
-        </button>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--peach)' }} />
+          <span className="eyebrow" style={{ fontSize: 11 }}>
+            DISCOVERY
+          </span>
+        </div>
+        <div style={{ marginLeft: 'auto' }}>
+          <OBProgress step={finished ? OB_STEPS.length - 1 : step} total={OB_STEPS.length} />
+        </div>
       </div>
 
-      {/* Profile review modal */}
-      {onboardingDone && profileData && (
-        <ProfileReviewCard
-          profile={profileData}
-          onConfirm={() => onComplete(profileData)}
-          onSkip={() => onComplete(profileData)}
-        />
-      )}
+      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', position: 'relative', zIndex: 2 }}>
+        <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 32px 40px' }}>
+          {!finished && step > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 36 }}>
+              {OB_STEPS.slice(0, step).map((s, i) =>
+                answers[s.k] ? (
+                  <OBAnswerPill
+                    key={s.k}
+                    question={promptFor(s)}
+                    answer={answers[s.k]}
+                    onEdit={() => editAnswer(i)}
+                    delay={i === step - 1 ? 0.1 : 0}
+                  />
+                ) : null,
+              )}
+            </div>
+          )}
+
+          {reflecting && <OBReflecting />}
+
+          {!reflecting && !finished && (
+            <OBQuestionCard
+              step={step}
+              data={{ ...current, q: promptLeadFor(current), q2: promptFor(current) }}
+              value={input}
+              setValue={setInput}
+              onSubmit={submit}
+              answersCount={answerCount}
+              disabled={reflecting}
+            />
+          )}
+
+          {finished && <OBFinale answers={answers} onDone={handleDone} submitting={submitting} />}
+
+          {error && (
+            <div
+              style={{
+                marginTop: 16,
+                padding: '10px 14px',
+                background: 'rgba(200,83,44,0.08)',
+                border: '1px solid rgba(200,83,44,0.25)',
+                borderRadius: 12,
+                color: 'var(--crr-accent-deep)',
+                fontSize: 13,
+              }}
+            >
+              {error}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div
+        style={{
+          padding: '16px 32px 22px',
+          textAlign: 'center',
+          fontSize: 12,
+          color: 'var(--crr-text-faint)',
+          position: 'relative',
+          zIndex: 2,
+        }}
+      >
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <Lock size={12} /> Your answers stay yours. You can edit or delete anything, anytime.
+        </span>
+      </div>
+
+      <style>{`
+        @keyframes obSlideIn {
+          from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes obFadeIn {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        @keyframes obQuestionIn {
+          from { opacity: 0; transform: translateY(20px); filter: blur(6px); }
+          to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+        @keyframes obLineIn {
+          from { opacity: 0; transform: translateY(14px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes obPulse {
+          0%, 100% { opacity: 0.3; transform: scale(0.85); }
+          50%      { opacity: 1;   transform: scale(1.1); }
+        }
+        @keyframes obFloat {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-3px); }
+        }
+      `}</style>
     </div>
   );
 }
