@@ -8,7 +8,12 @@ from typing import Optional, Dict, Any
 from fastapi import Header, HTTPException, status
 from firebase_admin import auth
 
-from app.services.firestore_service import init_firebase, get_user_role
+from app.services.firestore_service import (
+    init_firebase,
+    get_user_role,
+    get_user_profile,
+    update_user_profile,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,14 +44,37 @@ async def get_current_user(
     try:
         init_firebase()
         decoded = auth.verify_id_token(token)
-        uid = decoded["uid"]
+        uid   = decoded["uid"]
+        email = decoded.get("email")
+        name  = decoded.get("name")
+        photo = decoded.get("picture")
+
+        # Safety-net: create user document if it somehow doesn't exist yet.
+        # This is cheap (one read) and ensures every authenticated user always
+        # has a profile row before any route handler runs.
+        try:
+            existing = get_user_profile(uid)
+            if not existing:
+                update_user_profile(uid, {
+                    "email":               email,
+                    "display_name":        name or "",
+                    "photo_url":           photo or "",
+                    "onboarding_complete": False,
+                })
+                logger.info("Auto-created Firestore profile for user %s", uid)
+        except Exception as profile_exc:
+            # Non-fatal — don't block auth if Firestore is temporarily down.
+            logger.warning("Could not auto-create profile for %s: %s", uid, profile_exc)
+
         role = get_user_role(uid)
         return {
-            "uid": uid,
-            "email": decoded.get("email"),
-            "name": decoded.get("name"),
-            "role": role,
+            "uid":   uid,
+            "email": email,
+            "name":  name,
+            "role":  role,
         }
+    except HTTPException:
+        raise
     except Exception as exc:
         logger.warning("Token verification failed: %s", exc)
         raise HTTPException(
