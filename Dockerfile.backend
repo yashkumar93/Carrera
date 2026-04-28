@@ -1,0 +1,64 @@
+# =============================================================================
+# Careerra Backend — FastAPI + Uvicorn (Python 3.11-slim)
+#
+# Key design decisions:
+#   - sentence-transformers model (all-MiniLM-L6-v2, ~90 MB) is pre-downloaded
+#     INTO the image so containers start fast with no outbound model fetch.
+#   - chromadb is NOT pre-initialised here; it writes to /app/chroma_db which
+#     is a Docker volume on the host → survives container restarts & updates.
+#   - Firebase service account JSON is mounted at runtime as a read-only volume
+#     (/app/firebase-service-account.json) — never baked into the image.
+#   - All secrets (GROQ_API_KEY, PINECONE_API_KEY, …) come from env vars at
+#     runtime via docker-compose.yml.
+# =============================================================================
+
+FROM python:3.11-slim AS base
+
+WORKDIR /app
+
+# ── System deps ────────────────────────────────────────────────────────────
+# build-essential  — compiles native extensions (chromadb, tokenizers)
+# libgomp1        — OpenMP required by sentence-transformers / numpy
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        libgomp1 \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Python deps ────────────────────────────────────────────────────────────
+COPY backend/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir -r requirements.txt
+
+# ── Pre-download sentence-transformers model ───────────────────────────────
+# Baking the model into the image means:
+#   - Cold starts are fast (load from image layer, not network)
+#   - No HuggingFace outbound calls needed at runtime
+#   - The model is the same version as what was tested
+# Model: all-MiniLM-L6-v2 (~90 MB), 384-dimensional embeddings.
+# Must match pinecone_embedding_model in config.py.
+RUN python -c "\
+from sentence_transformers import SentenceTransformer; \
+SentenceTransformer('all-MiniLM-L6-v2'); \
+print('Model downloaded and cached.')"
+
+# ── Application source ─────────────────────────────────────────────────────
+COPY backend/ .
+
+# ── Non-root user ──────────────────────────────────────────────────────────
+RUN useradd --system --no-create-home --shell /bin/false appuser \
+ && chown -R appuser:appuser /app
+USER appuser
+
+# ── Runtime ───────────────────────────────────────────────────────────────
+EXPOSE 8000
+
+# 2 workers: enough for a 4 GB droplet.
+# --proxy-headers: trust X-Forwarded-* from Nginx.
+# --forwarded-allow-ips='*': Nginx is the only entry point so this is safe.
+CMD ["uvicorn", "main:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--workers", "2", \
+     "--proxy-headers", \
+     "--forwarded-allow-ips=*"]

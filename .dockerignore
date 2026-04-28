@@ -1,0 +1,39 @@
+# =============================================================
+# .dockerignore — keeps Docker build context lean and fast.
+# Without this, Docker sends node_modules + chroma_db (~1 GB+)
+# to the daemon on every build.
+# =============================================================
+
+# Node
+node_modules
+.next
+
+# Python
+backend/__pycache__
+backend/**/__pycache__
+backend/**/*.pyc
+backend/.venv
+backend/.venv_new
+backend/chroma_db          # never bake the vector DB into the image
+
+# Secrets — belt-and-suspenders (should never be in git either)
+.env
+.env.*
+backend/.env
+backend/*.json             # Firebase service account
+
+# Dev tooling
+.git
+.github
+.vscode
+.claude
+
+# Deploy scripts (not needed inside containers)
+scripts/
+
+# Docs
+*.md
+
+# OS
+.DS_Store
+Thumbs.db

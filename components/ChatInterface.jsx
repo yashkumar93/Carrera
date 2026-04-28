@@ -1099,7 +1099,6 @@ export default function ChatInterface() {
 
       await apiService.streamMessage(
         message,
-        null,
         currentStage,
         (token) => {
           fullResponse += token;
@@ -1164,7 +1163,7 @@ export default function ChatInterface() {
     if (exportingPdf) return;
     setExportingPdf(true);
     try {
-      await apiService.exportSessionPdf('history', 'career-plan.pdf');
+      await apiService.exportChatHistoryPdf('career-plan.pdf');
     } catch (err) {
       console.error('PDF export failed:', err);
     } finally {

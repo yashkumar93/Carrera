@@ -431,7 +431,6 @@ def parse_meta_block(text: str) -> tuple:
                     rc = None
                 # Certification whitelist enforcement — drop unknown certs
                 elif rc_type == "certification_card":
-                    from app.services import knowledge_base
                     cert_name = rc["data"].get("name")
                     if cert_name and not knowledge_base.is_cert_whitelisted(cert_name):
                         logger.warning("Stripped non-whitelisted certification: %r", cert_name)

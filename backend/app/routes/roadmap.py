@@ -5,13 +5,15 @@ across To Do / In Progress / Completed columns.
 """
 import json
 import logging
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException
+from firebase_admin import firestore as fb
 from pydantic import BaseModel, Field
 from typing import Dict, List, Optional
 
 from app.middleware.auth import get_current_user
 from app.services import firestore_service
 from app.services import llm_service
+from app.services.firestore_service import get_firestore_client
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -77,7 +79,6 @@ Guidelines:
 # ---------------------------------------------------------------------------
 
 def _roadmap_col(user_id: str):
-    from app.services.firestore_service import get_firestore_client
     return get_firestore_client().collection("users").document(user_id).collection("roadmap")
 
 
@@ -87,14 +88,12 @@ def _get_items(user_id: str) -> List[Dict]:
 
 
 def _create_item(user_id: str, data: Dict) -> str:
-    from firebase_admin import firestore as fb
     doc_ref = _roadmap_col(user_id).document()
     doc_ref.set({**data, "createdAt": fb.SERVER_TIMESTAMP})
     return doc_ref.id
 
 
 def _update_item(user_id: str, item_id: str, data: Dict) -> bool:
-    from firebase_admin import firestore as fb
     doc_ref = _roadmap_col(user_id).document(item_id)
     if not doc_ref.get().exists:
         return False

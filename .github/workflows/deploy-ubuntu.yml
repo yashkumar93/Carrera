@@ -1,0 +1,245 @@
+name: CI → Build → Deploy (Docker)
+
+# ── Triggers ─────────────────────────────────────────────────────────────────
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:        # allow manual trigger from the Actions UI
+
+# Only one deploy runs at a time; a newer push cancels an in-flight one.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+# ── Shared variables ──────────────────────────────────────────────────────────
+env:
+  REGISTRY:         ghcr.io
+  FRONTEND_IMAGE:   ghcr.io/${{ github.repository_owner }}/careerra-frontend
+  BACKEND_IMAGE:    ghcr.io/${{ github.repository_owner }}/careerra-backend
+
+# =============================================================================
+# JOB 1 — Frontend CI (lint)
+# =============================================================================
+jobs:
+  frontend_ci:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --frozen-lockfile
+
+      - name: Lint
+        run: npm run lint
+
+# =============================================================================
+# JOB 2 — Backend CI (syntax + import check)
+# =============================================================================
+  backend_ci:
+    name: Backend CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install --upgrade pip && pip install -r requirements.txt
+
+      - name: Compile sources (syntax check)
+        working-directory: backend
+        run: python -m compileall app
+
+# =============================================================================
+# JOB 3 — Build & push Docker images to GHCR
+# =============================================================================
+  build_push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    needs: [frontend_ci, backend_ci]
+    permissions:
+      contents: read
+      packages: write     # required to push to ghcr.io
+
+    outputs:
+      image_tag: ${{ steps.tag.outputs.sha_tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Short SHA used as the immutable image tag (e.g. sha-a1b2c3d)
+      - name: Compute image tag
+        id: tag
+        run: echo "sha_tag=sha-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # BuildKit cache stored in GitHub Actions cache — speeds up subsequent builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ── Frontend image ───────────────────────────────────────────────────
+      - name: Build & push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.frontend
+          push: true
+          # NEXT_PUBLIC_API_URL must be injected at BUILD time (baked into JS)
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+          tags: |
+            ${{ env.FRONTEND_IMAGE }}:${{ steps.tag.outputs.sha_tag }}
+            ${{ env.FRONTEND_IMAGE }}:latest
+          # GHA layer cache — first build ~3 min, subsequent ~45 s
+          cache-from: type=gha,scope=frontend
+          cache-to:   type=gha,scope=frontend,mode=max
+
+      # ── Backend image ────────────────────────────────────────────────────
+      - name: Build & push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.backend
+          push: true
+          tags: |
+            ${{ env.BACKEND_IMAGE }}:${{ steps.tag.outputs.sha_tag }}
+            ${{ env.BACKEND_IMAGE }}:latest
+          # sentence-transformers model download is cached here after first run
+          cache-from: type=gha,scope=backend
+          cache-to:   type=gha,scope=backend,mode=max
+
+# =============================================================================
+# JOB 4 — Deploy to DigitalOcean Droplet
+# =============================================================================
+  deploy:
+    name: Deploy to DigitalOcean
+    runs-on: ubuntu-latest
+    needs: build_push
+    # "production" is a GitHub Environment — add required reviewers there
+    # for mandatory approval before every production deploy.
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── SSH setup ──────────────────────────────────────────────────────────
+      - name: Configure SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.DO_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # Add droplet host key to known_hosts to prevent MITM
+          ssh-keyscan -p "${{ secrets.DO_SSH_PORT || '22' }}" \
+            "${{ secrets.DO_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      # ── Push configs to server ─────────────────────────────────────────────
+      - name: Sync docker-compose.yml and nginx config to server
+        run: |
+          scp -i ~/.ssh/id_ed25519 \
+              -P "${{ secrets.DO_SSH_PORT || '22' }}" \
+              docker-compose.yml \
+              "${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}:/srv/careerra/docker-compose.yml"
+
+          scp -i ~/.ssh/id_ed25519 \
+              -P "${{ secrets.DO_SSH_PORT || '22' }}" \
+              nginx/default.conf \
+              "${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}:/srv/careerra/nginx/default.conf"
+
+      # ── Deploy on server ───────────────────────────────────────────────────
+      - name: Pull images, restart containers, health-check
+        env:
+          IMAGE_TAG:               ${{ needs.build_push.outputs.image_tag }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          GROQ_API_KEY:            ${{ secrets.GROQ_API_KEY }}
+          PINECONE_API_KEY:        ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_INDEX_NAME:     ${{ secrets.PINECONE_INDEX_NAME }}
+          PINECONE_NAMESPACE:      ${{ secrets.PINECONE_NAMESPACE }}
+          CORS_ORIGINS_STR:        ${{ secrets.NEXT_PUBLIC_API_URL }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 \
+              -p "${{ secrets.DO_SSH_PORT || '22' }}" \
+              "${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}" \
+              "IMAGE_TAG='${IMAGE_TAG}' \
+               GITHUB_REPOSITORY_OWNER='${GITHUB_REPOSITORY_OWNER}' \
+               GROQ_API_KEY='${GROQ_API_KEY}' \
+               PINECONE_API_KEY='${PINECONE_API_KEY}' \
+               PINECONE_INDEX_NAME='${PINECONE_INDEX_NAME}' \
+               PINECONE_NAMESPACE='${PINECONE_NAMESPACE}' \
+               CORS_ORIGINS_STR='${CORS_ORIGINS_STR}' \
+               bash -s" << 'ENDSSH'
+          set -euo pipefail
+
+          cd /srv/careerra
+
+          # ── Write .env for docker compose ──────────────────────────────
+          # This file is read by docker compose at startup.
+          cat > .env << EOF
+          IMAGE_TAG=${IMAGE_TAG}
+          GITHUB_REPOSITORY_OWNER=${GITHUB_REPOSITORY_OWNER}
+          GROQ_API_KEY=${GROQ_API_KEY}
+          PINECONE_API_KEY=${PINECONE_API_KEY}
+          PINECONE_INDEX_NAME=${PINECONE_INDEX_NAME}
+          PINECONE_NAMESPACE=${PINECONE_NAMESPACE}
+          CORS_ORIGINS_STR=${CORS_ORIGINS_STR}
+          EOF
+          chmod 600 .env
+
+          # ── Pull new images ────────────────────────────────────────────
+          echo "Pulling images for tag ${IMAGE_TAG}..."
+          docker compose pull
+
+          # ── Rolling restart ────────────────────────────────────────────
+          # --no-build: images come from registry, never built on server
+          # --remove-orphans: clean up containers from renamed services
+          docker compose up -d --no-build --remove-orphans
+
+          # ── Health check — wait up to 90s for backend to be healthy ───
+          echo "Waiting for backend health check..."
+          HEALTHY=0
+          for i in $(seq 1 18); do
+            STATUS=$(docker inspect --format='{{.State.Health.Status}}' careerra_backend 2>/dev/null || echo "missing")
+            if [ "$STATUS" = "healthy" ]; then
+              echo "Backend is healthy after $((i*5))s"
+              HEALTHY=1
+              break
+            fi
+            echo "  Attempt $i/18: status=${STATUS}"
+            sleep 5
+          done
+
+          if [ $HEALTHY -eq 0 ]; then
+            echo "ERROR: Backend health check failed after 90s"
+            echo "Last 50 lines of backend logs:"
+            docker logs --tail 50 careerra_backend
+            exit 1
+          fi
+
+          # ── Prune old images (keep disk clean) ────────────────────────
+          docker image prune -f
+
+          echo "Deploy complete — running tag: ${IMAGE_TAG}"
+          ENDSSH
+
+      # ── Notify on failure ──────────────────────────────────────────────────
+      - name: Report deploy status
+        if: failure()
+        run: |
+          echo "::error::Deploy failed for commit ${{ github.sha }}."
+          echo "::error::Check logs above. To rollback: re-run a previous successful workflow."
